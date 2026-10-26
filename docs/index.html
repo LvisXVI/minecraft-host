@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="de" class="js-off">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08111c">
+  <title>Minecraft Host — dein Server auf deinem PC</title>
+  <meta name="description" content="Minecraft Host ist ein lokaler Servermanager für Minecraft Java unter Windows: Modrinth-Packs importieren, Java automatisch erkennen, Server starten und Freunde per Radmin VPN, playit oder Minekube einladen.">
+  <link rel="canonical" href="https://lvisxvi.github.io/minecraft-host/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lvisxvi.github.io/minecraft-host/">
+  <meta property="og:title" content="Minecraft Host — dein Server auf deinem PC">
+  <meta property="og:description" content="Modpack rein, Start drücken, Freunde einladen. Lokal, ohne Routerfreigabe.">
+  <meta property="og:image" content="https://lvisxvi.github.io/minecraft-host/media/host-server.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="media/scene.webp">
+  <link rel="stylesheet" href="liquid.css">
+  <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Minecraft Host","applicationCategory":"GameApplication","operatingSystem":"Windows 10, Windows 11","url":"https://lvisxvi.github.io/minecraft-host/","downloadUrl":"https://github.com/LvisXVI/minecraft-host/releases/latest","author":{"@type":"Person","name":"LvisXVI"},"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+  </script>
+  <style>
+    body { --scene: url("media/scene.webp"); --accent: #6fe38a; --accent-2: #69b8ff; --accent-ink: #052012; }
+    .block-mark { width: 32px; height: 32px; border-radius: 10px; display: inline-block; background: linear-gradient(180deg, #8ff09f 0 34%, #5cb85c 34% 50%, #8b5a2b 50% 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(255,255,255,.25), 0 6px 18px -6px var(--accent); }
+    .intro-drop .block { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(180deg, #8ff09f 0 32%, #5cb85c 32% 46%, #8b5a2b 46% 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.6); animation: dropIcon 1.1s var(--ease-out) .35s both; }
+    .f1 { left: -30px; top: 16%; } .f2 { right: -16px; top: 56%; animation-delay: -3s; }
+    .designs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .design { padding: 10px; border-radius: 22px; display: grid; gap: 10px; }
+    .design i { display: block; aspect-ratio: 16 / 10; border-radius: 14px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+    .design strong { display: block; font-size: 15px; } .design small { color: var(--ink-3); font-size: 13px; }
+    .ways { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .ways .card { min-height: 0; }
+    .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 18px 20px; border-radius: 20px; color: var(--ink-2); }
+    .steps li::before { content: counter(s); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: var(--accent-ink); background: linear-gradient(180deg, #a6f5b3, var(--accent)); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
+    .steps b { color: var(--ink); }
+    @media (max-width: 1080px) { .designs { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ways { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .designs { grid-template-columns: 1fr 1fr; } .ways { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-repo="LvisXVI/minecraft-host" data-asset="Portable.*\.zip$">
+  <a class="skip" href="#main">Zum Inhalt</a>
+  <div class="lg-scene" aria-hidden="true"><div class="lg-orb a"></div><div class="lg-orb b"></div></div>
+
+  <div id="lg-intro" aria-hidden="true">
+    <div class="intro-core">
+      <div class="intro-drop"><span class="block"></span></div>
+      <div class="intro-word">Minecraft Host</div>
+      <div class="intro-line"></div>
+      <div class="intro-sub">Server · Freunde · Welt</div>
+    </div>
+  </div>
+
+  <nav class="lg-nav glass" aria-label="Hauptnavigation">
+    <a class="brand" href="#top" aria-label="Minecraft Host Startseite"><span class="block-mark" aria-hidden="true"></span><span>Minecraft Host</span></a>
+    <div class="nav-links">
+      <a href="#funktionen">Funktionen</a><a href="#freunde">Freunde</a><a href="#designs">Designs</a><a href="#download">Download</a>
+    </div>
+    <div class="switch" aria-label="Projekte">
+      <a href="../modspire/">Modspire</a>
+      <a href="../minecraft-mod-studio/">Mod Studio</a>
+      <a href="./" aria-current="page">Host</a>
+    </div>
+    <a class="btn primary small nav-cta" href="#download">Download</a>
+    <button class="menu-btn" aria-label="Menü" aria-expanded="false"><span></span><span></span><span></span></button>
+  </nav>
+
+  <main id="main">
+    <header class="hero wrap" id="top">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow" data-hero style="--d:0">Minecraft Java · Windows</span>
+          <h1 data-hero style="--d:1;margin-top:22px">Dein Server.<br><span class="grad">Dein PC.</span></h1>
+          <p class="lead" data-hero style="--d:2">Modpack rein, Start drücken, Freunde einladen. Minecraft Host importiert Modrinth-Packs, findet das passende Java und zeigt dir die Adresse für deine Freunde – ohne Routerfreigabe.</p>
+          <div class="actions" data-hero style="--d:3">
+            <a class="btn primary" href="https://github.com/LvisXVI/minecraft-host/releases/latest" data-release-download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14"/></svg>
+              Portable laden
+            </a>
+            <a class="btn" href="https://github.com/LvisXVI/minecraft-host">Quellcode ansehen</a>
+          </div>
+          <div class="meta" data-hero style="--d:4">
+            <span class="chip"><span class="dot"></span>Version <b data-release-version>1.0.0</b></span>
+            <span class="chip">Fabric · NeoForge · Forge · Vanilla</span>
+            <span class="chip">5 Designs</span>
+          </div>
+        </div>
+        <div class="hero-visual" data-hero style="--d:2">
+          <div class="device glass"><img src="media/host-server.webp" width="1600" height="1000" alt="Minecraft Host Serverübersicht im Liquid-Glass-Design"></div>
+          <div class="float glass f1"><span class="ico">⬢</span><div>Modrinth-Import<small>SHA-geprüfte Downloads</small></div></div>
+          <div class="float glass f2"><span class="ico">⇆</span><div>Gemeinsam hosten<small>2 PCs · 1 Welt</small></div></div>
+        </div>
+      </div>
+      <div class="scroll-cue" aria-hidden="true"></div>
+    </header>
+
+    <section class="section wrap" id="funktionen">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Funktionen</span>
+        <h2>Alles für den <span class="grad">Spieleabend.</span></h2>
+        <p>Die Oberfläche läuft im Browser unter 127.0.0.1, der Server auf deinem PC. Keine Cloud, keine Abos.</p>
+      </div>
+      <div class="bento">
+        <article class="card glass tint span-4 feature-wide" data-reveal>
+          <div><div class="ico">📦</div><h3>Modrinth-Link einfügen, Version wählen</h3><p>Servergeeignete Dateien werden per HTTPS geladen und per SHA1/SHA512 geprüft, <code>overrides</code> und <code>server-overrides</code> übernommen. Alternativ <code>.mrpack</code> oder ein fertiges Serverpack als ZIP.</p><span class="tag">Import</span></div>
+          <img src="media/host-modrinth.webp" width="1600" height="1000" alt="Dialog zum Importieren eines Modrinth-Modpacks" loading="lazy">
+        </article>
+        <article class="card glass span-2" data-reveal style="--d:1"><div class="ico">☕</div><h3>Java automatisch</h3><p>Java 8/17/21/25 – auch die Laufzeiten der Modrinth-App – werden erkannt. 1.21.x braucht 21, 26.x braucht 25.</p><span class="tag">Kein Suchen</span></article>
+        <article class="card glass span-2" data-reveal><div class="ico">📈</div><h3>Live-Daten</h3><p>Spieler, lokale Antwortzeit, echte RAM-Nutzung, Laufzeit und ab 1.20.3 Tickzeit samt geschätzten TPS.</p><span class="tag">Alle 5 s</span></article>
+        <article class="card glass span-2" data-reveal style="--d:1"><div class="ico">💻</div><h3>Konsole</h3><p><code>list</code>, <code>say Hallo</code> oder <code>whitelist add Name</code> direkt aus der App, die letzten 180 Zeilen im Blick.</p><span class="tag">Befehle</span></article>
+        <article class="card glass span-2" data-reveal style="--d:2"><div class="ico">🆕</div><h3>Neue Server</h3><p>Fabric und Vanilla direkt; Forge und NeoForge über den offiziellen Installer mit exakter Loader-Version.</p><span class="tag">Einrichten</span></article>
+      </div>
+    </section>
+
+    <section class="section wrap" id="freunde">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Freunde einladen</span>
+        <h2>Vier Wege, <span class="grad">keiner davon kompliziert.</span></h2>
+      </div>
+      <div class="ways">
+        <article class="card glass tint" data-reveal><div class="ico">🛡️</div><h3>Radmin VPN</h3><p>Empfohlen und kostenlos. Die App zeigt deine VPN-Adresse und prüft die Windows-Firewall.</p></article>
+        <article class="card glass" data-reveal style="--d:1"><div class="ico">🏠</div><h3>Selbes WLAN</h3><p>Die LAN-Adresse steht automatisch in der Übersicht.</p></article>
+        <article class="card glass" data-reveal style="--d:2"><div class="ico">🚇</div><h3>playit-Tunnel</h3><p>Signierter Agent im Paket, Start aus der App, Minecraft-Java-Tunnel auf deinen Port.</p></article>
+        <article class="card glass" data-reveal style="--d:3"><div class="ico">⚡</div><h3>Minekube Connect</h3><p>Optional für Fabric: Gate-Proxy und Adresse werden kostenlos eingerichtet.</p></article>
+      </div>
+      <div class="video-shell glass" style="margin-top:16px" data-reveal><img src="media/host-connect.webp" width="1600" height="1000" alt="Radmin-Adresse, Firewall-Prüfung und gemeinsames Hosten" loading="lazy" style="border-radius:24px"></div>
+      <ol class="steps" style="margin-top:16px">
+        <li class="glass" data-reveal><span><b>Gemeinsam hosten:</b> Auf dem Hauptrechner „Freund einladen“ klicken und den Code schicken.</span></li>
+        <li class="glass" data-reveal><span><b>Verbinden:</b> Der Freund fügt den Code ein und schickt seine Geräte-ID zurück.</span></li>
+        <li class="glass" data-reveal><span><b>Übernehmen:</b> Syncthing überträgt den geprüften Weltstand verschlüsselt. Ist dein PC aus, startet dein Freund die Welt – danach geht sie zurück.</span></li>
+      </ol>
+    </section>
+
+    <section class="section wrap" id="designs">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Designs</span>
+        <h2>Fünf Looks, <span class="grad">ein Klick.</span></h2>
+        <p>Oben rechts in der App umschalten. Die Wahl bleibt auf diesem PC gespeichert, der Wechsel blendet weich über.</p>
+      </div>
+      <div class="designs">
+        <div class="design glass" data-reveal><i style="background-image:url(media/scene.webp)"></i><strong>Kirschhain</strong><small>Grasgrün · Standard</small></div>
+        <div class="design glass" data-reveal style="--d:1"><i style="background-image:url(media/scene-aurora.webp)"></i><strong>Polarlicht</strong><small>Kühles Türkis</small></div>
+        <div class="design glass" data-reveal style="--d:2"><i style="background-image:url(media/scene-crystal.webp)"></i><strong>Kristalltal</strong><small>Amethyst-Violett</small></div>
+        <div class="design glass" data-reveal style="--d:3"><i style="background-image:linear-gradient(160deg,#5a1a12,#1a0609)"></i><strong>Nether</strong><small>Glut, ohne Bild</small></div>
+        <div class="design glass" data-reveal style="--d:4"><i style="background-image:linear-gradient(160deg,#ffffff,#ffd9ec)"></i><strong>Tageslicht</strong><small>Helles Milchglas</small></div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="download">
+      <div class="section-head" data-reveal>
+        <span class="eyebrow">Download</span>
+        <h2>Entpacken. <span class="grad">Starten.</span></h2>
+      </div>
+      <div class="download">
+        <div class="dl-main glass tint" data-reveal>
+          <div>
+            <h3 style="font-size:30px">Minecraft Host <span data-release-version>1.0.0</span></h3>
+            <p class="muted" style="margin:8px 0 0">Portable ZIP mit <code>MinecraftHost.exe</code> sowie playit-Agent, Gate und Syncthing. Kein Python nötig. Für den Minecraft-Server brauchst du ein passendes Java.</p>
+          </div>
+          <div class="spec">
+            <div><small>Datei</small><strong data-release-name>MinecraftHost-Portable-Windows.zip</strong></div>
+            <div><small>Größe</small><strong data-release-size>≈ 38 MB</strong></div>
+            <div><small>Veröffentlicht</small><strong data-release-date>Okt. 2026</strong></div>
+          </div>
+          <div class="actions">
+            <a class="btn primary" href="https://github.com/LvisXVI/minecraft-host/releases/latest" data-release-download>Portable herunterladen</a>
+            <a class="btn" href="https://github.com/LvisXVI/minecraft-host/releases">Alle Releases</a>
+          </div>
+        </div>
+        <div class="dl-side">
+          <div class="card glass" data-reveal style="--d:1">
+            <h3>Aus dem Quellcode</h3>
+            <p>Python 3.11+, nur Standardbibliothek.</p>
+            <pre>python app.py
+pyinstaller MinecraftHost.spec</pre>
+          </div>
+          <div class="note glass" data-reveal style="--d:2"><b>Sicher lokal:</b> Das Dashboard bindet nur an 127.0.0.1 und blockiert fremde Websites. Ohne Minekube läuft der Server mit <code>online-mode=true</code>. Lies und bestätige die <a href="https://www.minecraft.net/eula">Minecraft-EULA</a> vor dem ersten Start.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div>
+        <a class="brand" href="#top"><span class="block-mark" aria-hidden="true"></span><span>Minecraft Host</span></a>
+        <p>Unabhängiges Projekt. Nicht mit Mojang oder Microsoft verbunden. Mitgelieferte Drittsoftware unter ihren eigenen Lizenzen.</p>
+      </div>
+      <nav aria-label="Fußzeile">
+        <a href="https://github.com/LvisXVI/minecraft-host">GitHub</a>
+        <a href="https://github.com/LvisXVI/minecraft-host/releases">Releases</a>
+        <a href="../modspire/">Modspire</a>
+        <a href="../minecraft-mod-studio/">Mod Studio</a>
+      </nav>
+    </div>
+  </footer>
+  <script src="liquid.js" defer></script>
+</body>
+</html>

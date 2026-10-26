@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111c">
+  <title>Minecraft Host</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="launch" class="launch" role="status" aria-live="polite"><div class="launch-core"><span class="launch-block" aria-hidden="true"></span><div class="launch-title">MINECRAFT HOST</div><div class="launch-sub">Server werden geladen …</div><div class="launch-bar" aria-hidden="true"></div></div></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>MINECRAFT HOST</strong><span class="brand-sub">Lokaler Servermanager</span></div>
+    <div class="topright"><span id="clock"></span><div class="design-picker"><button class="design-toggle" id="design-toggle" type="button" aria-haspopup="true" aria-expanded="false"><span class="design-swatch" aria-hidden="true"></span><span>Design</span></button><div class="design-menu" id="design-menu" role="menu" hidden></div></div><span class="local-tag">LÄUFT AUF DIESEM PC</span></div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-heading">DEINE SERVER <span id="server-count">00</span></div>
+      <div id="server-list" class="server-list"></div>
+      <button class="side-new" id="new-server-button"><span class="plus">+</span> Server erstellen</button>
+      <button class="side-new" id="link-import-button">Modrinth-Link importieren</button>
+      <button class="side-new" id="join-share-button">Freundes-Server verbinden</button>
+      <div class="side-bottom">
+        <div class="side-rule"></div>
+        <div class="side-label">DATEIEN AUF DEINEM PC</div>
+        <p>Welten, Mods und Einstellungen bleiben lokal gespeichert.</p>
+      </div>
+    </aside>
+    <main id="main" class="main" tabindex="-1"></main>
+  </div>
+  <input id="import-input" type="file" accept=".mrpack,.zip" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
