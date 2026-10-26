@@ -1,90 +1,93 @@
 <div align="center">
 
-<img src="docs/media/host-server.webp" alt="Minecraft Host – Serverübersicht im Liquid-Glass-Design" width="100%">
+<img src="docs/media/host-server.webp" alt="Minecraft Host server overview in the Liquid Glass design" width="100%">
 
 # Minecraft Host
 
-**Dein Minecraft-Java-Server auf deinem PC. Modpack rein, Start drücken, Freunde einladen.**
+**Your Minecraft Java server, on your PC. Drop in a modpack, press start, invite your friends.**
 
-[![Release](https://img.shields.io/github/v/release/LvisXVI/minecraft-host?style=flat-square&color=6fe38a&label=Release)](https://github.com/LvisXVI/minecraft-host/releases/latest)
-[![Windows](https://img.shields.io/badge/Windows-Portable-15263b?style=flat-square&logo=windows)](https://github.com/LvisXVI/minecraft-host/releases/latest)
-[![Python](https://img.shields.io/badge/Python-nur%20Standardbibliothek-15263b?style=flat-square&logo=python&logoColor=white)](app.py)
+[![Release](https://img.shields.io/github/v/release/LvisXVI/minecraft-host?style=flat-square&color=6fe38a&label=release)](https://github.com/LvisXVI/minecraft-host/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-portable-15263b?style=flat-square&logo=windows)](https://github.com/LvisXVI/minecraft-host/releases/latest)
+[![Python](https://img.shields.io/badge/Python-standard%20library%20only-15263b?style=flat-square&logo=python&logoColor=white)](app.py)
 
-[🌐 Website](https://lvisxvi.github.io/minecraft-host/) · [⬇️ Portable herunterladen](https://github.com/LvisXVI/minecraft-host/releases/latest) · [🧩 Modspire](https://lvisxvi.github.io/modspire/) · [🛠️ Mod Studio](https://lvisxvi.github.io/minecraft-mod-studio/)
+[🌐 Website](https://lvisxvi.github.io/minecraft-host/) · [⬇️ Download portable](https://github.com/LvisXVI/minecraft-host/releases/latest) · [🧩 Modspire](https://lvisxvi.github.io/modspire/) · [🛠️ Mod Studio](https://lvisxvi.github.io/minecraft-mod-studio/)
 
 </div>
 
 ---
 
-Minecraft Host ist ein lokaler Servermanager für **Minecraft Java Edition unter Windows**. Die Oberfläche öffnet sich im Browser unter `127.0.0.1`, der Server selbst läuft auf deinem PC. Modrinth-Packs, `.mrpack`-Dateien und fertige Serverpacks werden importiert, Java wird automatisch erkannt, und für das Spielen mit Freunden gibt es gleich mehrere Wege – ohne Routerfreigabe.
+Minecraft Host is a local server manager for **Minecraft Java Edition on Windows**. The dashboard opens in your browser on `127.0.0.1`, the server runs on your own PC. It imports Modrinth packs, `.mrpack` files and ready-made server packs, detects Java automatically, and gives you several ways to play with friends – no router configuration required.
 
-## ✨ Was drin ist
+> The app interface is currently in German; this documentation is in English.
+
+## ✨ Features
 
 | | |
 |---|---|
-| 📦 **Modrinth-Import** | `modrinth.com/modpack/...`-Link einfügen, Pack-Version wählen. Servergeeignete Dateien werden per HTTPS geladen und per SHA1/SHA512 geprüft. |
-| 🗂️ **Serverpacks & `.mrpack`** | `.mrpack` importieren oder ein fertiges Serverpack als ZIP entpacken (Server-JAR oder Forge/NeoForge-Startargumente). |
-| 🆕 **Neue Server** | Fabric und Vanilla direkt; Forge und NeoForge über den offiziellen Installer mit exakter Loader-Version. |
-| ☕ **Java automatisch** | Vorhandene Java-8/17/21/25-Laufzeiten (auch die der Modrinth-App) werden erkannt. 1.21.x braucht Java 21, 26.x Java 25. |
-| 📈 **Live-Daten** | Spielerzahl, lokale Antwortzeit, echte RAM-Nutzung, Laufzeit und ab 1.20.3 mittlere Tickzeit samt geschätzten TPS. |
-| 💻 **Konsole** | Befehle wie `list`, `say Hallo` oder `whitelist add Name` direkt aus der App (ohne `/`). |
-| 🤝 **Gemeinsam hosten** | Zwei PCs, eine Welt: Syncthing überträgt den geprüften Weltstand verschlüsselt, sodass ein Freund übernehmen kann, wenn dein PC aus ist. |
+| 📦 **Modrinth import** | Paste a `modrinth.com/modpack/...` link and pick the pack version. Server-side files are downloaded over HTTPS and verified with SHA1/SHA512; `overrides` and `server-overrides` are applied. |
+| 🗂️ **Server packs & `.mrpack`** | Import a `.mrpack`, or unpack a ready-made server pack ZIP (server JAR or Forge/NeoForge start arguments). |
+| 🆕 **New servers** | Fabric and Vanilla directly; Forge and NeoForge via the official installer with an exact loader version. |
+| ☕ **Java, automatically** | Installed Java 8/17/21/25 runtimes – including the ones from the Modrinth App – are detected. 1.21.x needs Java 21, 26.x needs Java 25. |
+| 📈 **Live data** | Player count, local response time, real RAM usage, uptime and, from 1.20.3, mean tick time with estimated TPS. |
+| 💻 **Console** | Run `list`, `say Hello` or `whitelist add Name` from the app (without `/`). |
+| 🤝 **Host together** | Two PCs, one world: Syncthing transfers the verified world state encrypted, so a friend can take over while your PC is off. |
+| 🎨 **Five designs** | Cherry Grove, Aurora, Crystal Valley, Nether and Daylight – a Liquid Glass interface with smooth transitions, switchable in the top bar. |
 
-<p align="center"><img src="docs/media/host-connect.webp" alt="Radmin-VPN-Adresse, Firewall-Prüfung und gemeinsames Hosten" width="100%"></p>
+<p align="center"><img src="docs/media/host-connect.webp" alt="Radmin VPN address, firewall check and shared hosting" width="100%"></p>
 
-## 🚀 Start
+## 🚀 Getting started
 
-1. Unter [Releases](https://github.com/LvisXVI/minecraft-host/releases/latest) die **Portable-ZIP** laden und entpacken.
-2. **`MinecraftHost.exe`** starten. Kein Python nötig. Das Dashboard öffnet sich unter `http://127.0.0.1:18765` und ist nur von diesem PC erreichbar.
-3. Modpack importieren oder neuen Server erstellen, RAM/Port/Java einstellen.
-4. Die [Minecraft-EULA](https://www.minecraft.net/eula) lesen, in der App bestätigen, speichern und den Server starten.
+1. Download the **portable ZIP** from [Releases](https://github.com/LvisXVI/minecraft-host/releases/latest) and unzip it.
+2. Run **`MinecraftHost.exe`** – no Python needed. The dashboard opens at `http://127.0.0.1:18765` and is only reachable from this PC.
+3. Import a modpack or create a new server, then set RAM, port and Java.
+4. Read the [Minecraft EULA](https://www.minecraft.net/eula), accept it in the app, save and start the server.
 
-Aus dem Quellcode: Python 3.11+ installieren und `Start Minecraft Host.cmd` ausführen. Die App nutzt nur die Python-Standardbibliothek.
+From source: install Python 3.11+ and run `Start Minecraft Host.cmd`. The app only uses the Python standard library.
 
-## 🌍 Freunde einladen
+## 🌍 Inviting friends
 
-**Empfohlen: [Radmin VPN](https://www.radmin-vpn.com/) (kostenlos, ohne Routerfreigabe).** Alle Mitspieler treten demselben privaten Radmin-Netzwerk bei. Minecraft Host zeigt die Radmin-Adresse des hostenden PCs samt Port und prüft, ob die Windows-Firewall Java im (öffentlichen) Radmin-Netz durchlässt.
+**Recommended: [Radmin VPN](https://www.radmin-vpn.com/) (free, no port forwarding).** Everyone joins the same private Radmin network. Minecraft Host shows the hosting PC's Radmin address with the port and checks whether Windows Firewall lets Java through on the (public) Radmin network.
 
-Weitere Wege:
+Other options:
 
-- **Im selben WLAN:** Die LAN-Adresse wird automatisch angezeigt.
-- **playit-Tunnel:** Der beiliegende, signierte [playit-Agent](https://github.com/playit-cloud/playit-agent/releases) wird aus der App gestartet; nach der Verknüpfung einen Minecraft-Java-Tunnel auf den lokalen Port anlegen.
-- **Minekube Connect (Fabric, optional):** „Kostenlos einrichten“ lädt FabricProxy-Lite in den Server und startet den beiliegenden [Gate-Proxy](https://github.com/minekube/gate). Vorher einen vollständigen Beitritt mit genau deinem Modpack testen – manche Modpacks brechen über den Proxy mit einem Protokollfehler ab; dann eine direkte TCP-Verbindung nutzen.
-- **Portfreigabe im Router:** Funktioniert auch, Minecraft Host ändert aber selbst keine Routereinstellungen.
+- **Same Wi-Fi:** the LAN address is shown automatically.
+- **playit tunnel:** start the bundled, signed [playit agent](https://github.com/playit-cloud/playit-agent/releases) from the app; after linking it, create a Minecraft Java tunnel to your local port.
+- **Minekube Connect (Fabric, optional):** "set up for free" adds FabricProxy-Lite to the server and starts the bundled [Gate proxy](https://github.com/minekube/gate). Test a full join with your exact modpack first – some modpacks fail through the proxy with a protocol error; use a direct TCP connection then.
+- **Port forwarding:** works too, but Minecraft Host never changes router settings itself.
 
-> Für einen privaten Freundeskreis `whitelist on` aktivieren und Freunde mit `whitelist add Spielername` hinzufügen.
+> For a private group, enable `whitelist on` and add friends with `whitelist add PlayerName`.
 
-## 🤝 Gemeinsam mit einem Freund hosten
+## 🤝 Hosting together with a friend
 
-1. Beide PCs nutzen das portable Paket (inkl. `syncthing.exe`) und ein passendes Java.
-2. Auf dem Hauptrechner den Server stoppen → **„Freund einladen“** → Code an den Freund senden.
-3. Der Freund klickt **„Freundes-Server verbinden“**, fügt den Code ein und schickt seine **Geräte-ID** zurück.
-4. Geräte-ID bestätigen. Der geprüfte Weltstand wird übertragen (beide PCs einmal gleichzeitig online).
-5. Ist der Hauptrechner offline, startet der Freund den Server; nach dem Stoppen geht der neue Weltstand zurück.
+1. Both PCs use the portable package (including `syncthing.exe`) and a matching Java.
+2. On the main PC, stop the server → **invite friend** → send the code.
+3. Your friend clicks **connect friend's server**, pastes the code and sends back their **device ID**.
+4. Confirm the device ID. The verified world state is transferred (both PCs online at the same time once).
+5. While the main PC is offline, your friend starts the server; after stopping, the new world state travels back.
 
-Die App blockiert den Start, wenn die andere Kopie als aktiv gemeldet wird oder der Weltstand unvollständig ist. Nie absichtlich parallel starten. Die gemeinsame Kopie ersetzt kein eigenes Backup.
+The app blocks a start while the other copy reports itself as active or the world state is incomplete. Never start both on purpose. The shared copy does not replace your own backups.
 
-## 🔒 Daten & Sicherheit
+## 🔒 Data & security
 
-- Server, Welten und Konfiguration: `%LOCALAPPDATA%\MinecraftHost\servers\<Server-ID>`; App-Einstellungen in `%LOCALAPPDATA%\MinecraftHost\config.json`.
-- Das Dashboard bindet nur an `127.0.0.1` und blockiert Anfragen fremder Websites.
-- Ohne Minekube läuft der Server mit `online-mode=true`. Mit Minekube bindet das Backend nur an `127.0.0.1` und Gate übernimmt die Kontoanmeldung.
-- Es werden keine Dateien aus dem Serverordner hochgeladen. Proxy-Schlüssel und Minekube-Token bleiben unter `%LOCALAPPDATA%\MinecraftHost\gate`.
+- Servers, worlds and configuration: `%LOCALAPPDATA%\MinecraftHost\servers\<server-id>`; app settings in `%LOCALAPPDATA%\MinecraftHost\config.json`.
+- The dashboard binds to `127.0.0.1` only and blocks requests from other websites.
+- Without Minekube the server runs with `online-mode=true`. With Minekube the backend binds to `127.0.0.1` only and Gate handles account authentication.
+- No files from the server folder are uploaded. Proxy keys and the Minekube token stay in `%LOCALAPPDATA%\MinecraftHost\gate`.
 
-## 🛠️ Entwicklung & Build
+## 🛠️ Development & build
 
 ```powershell
-python app.py                      # Dashboard auf http://127.0.0.1:18765
+python app.py                      # dashboard on http://127.0.0.1:18765
 pip install pyinstaller
 pyinstaller MinecraftHost.spec     # dist\MinecraftHost.exe
 ```
 
-Für das portable Paket `gate.exe`, `playit-agent.exe` und `syncthing.exe` neben die EXE legen.
+For the portable package, place `gate.exe`, `playit-agent.exe` and `syncthing.exe` next to the EXE.
 
-## 📚 Technische Hinweise & Drittsoftware
+## 📚 Technical notes & third-party software
 
-- `.mrpack` nach der [Modrinth-Formatspezifikation](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack); NeoForge nach der [offiziellen Serveranleitung](https://docs.neoforged.net/user/docs/server/).
-- Im Release-Paket enthalten, jeweils aus den offiziellen Releases und per SHA256 geprüft: [playit-agent 0.17.1](https://github.com/playit-cloud/playit-agent/releases/tag/v0.17.1), [Gate 0.75.3](https://github.com/minekube/gate/releases/tag/v0.75.3), [Syncthing](https://github.com/syncthing/syncthing/releases). Es gelten deren eigene Lizenzen.
-- Client-only-Mods oder fehlerhafte Pack-Metadaten können einen Serverstart verhindern. CurseForge-Clientexporte enthalten nicht alle Dateien – dort das **Serverpack** des Anbieters verwenden.
+- `.mrpack` handling follows the [Modrinth format specification](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack); NeoForge setup follows the [official server guide](https://docs.neoforged.net/user/docs/server/).
+- Bundled in the release, each taken from official releases and checked by SHA256: [playit-agent 0.17.1](https://github.com/playit-cloud/playit-agent/releases/tag/v0.17.1), [Gate 0.75.3](https://github.com/minekube/gate/releases/tag/v0.75.3), [Syncthing](https://github.com/syncthing/syncthing/releases). Their own licences apply.
+- Client-only mods or broken pack metadata can still prevent a server from starting. CurseForge client exports don't contain every file – use the creator's **server pack** instead.
 
-Minecraft Host ist ein unabhängiges Projekt und nicht mit Mojang oder Microsoft verbunden.
+Minecraft Host is an independent project and is not affiliated with Mojang or Microsoft.
