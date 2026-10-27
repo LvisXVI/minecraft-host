@@ -34,6 +34,7 @@ async function refresh(force = false) {
     const key = viewKey();
     if (force || (!editing && !modalOpen && key !== lastViewKey)) { render(); lastViewKey = key; }
     else updateLogs();
+    renderUpdate();
     endLaunch();
   } catch (err) { showToast(err.message); }
 }
@@ -283,3 +284,53 @@ function applyDesign(id, animate = false) {
   let saved = 'cherry'; try { saved = localStorage.getItem('mch-design') || 'cherry'; } catch {}
   applyDesign(saved);
 })();
+
+// Self-update: version tag, "update available" pill, dialog with notes, install overlay.
+let updateDismissed = '';
+function renderUpdate() {
+  const app = state.app || {}; const pill = $('#update-pill'), tag = $('#version-tag');
+  tag.textContent = `v${app.current || '–'}`;
+  const show = app.available && app.latest !== updateDismissed && !app.installing;
+  pill.hidden = !show;
+  if (show) pill.textContent = `Update ${app.latest}`;
+}
+function updateNotes(text) {
+  return esc(text || 'Keine Versionshinweise.').replace(/^##+ (.*)$/gm, '<strong>$1</strong>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/^- /gm, '• ').replace(/\n/g, '<br>');
+}
+async function showUpdateModal(recheck = false) {
+  if (recheck) { try { state.app = await api('/api/update/check', {}); renderUpdate(); } catch (err) { showToast(err.message); return; } }
+  const app = state.app || {}; modalOpen = true;
+  const layer = document.createElement('div'); layer.className = 'modal-layer'; layer.id = 'update-modal-layer';
+  const body = app.available
+    ? `<p class="lead" style="font-size:14px">Version <strong>${esc(app.latest)}</strong> ist verfügbar (installiert: ${esc(app.current)}).</p><div class="update-notes">${updateNotes(app.notes)}</div>
+       <p class="helper">Das Update wird von GitHub geladen und per SHA-256 geprüft. Minecraft Host startet danach neu; deine Server und Welten bleiben unverändert.${app.installable ? '' : ' <strong>In der Quellcode-Version bitte die neue Version manuell von GitHub laden.</strong>'}</p>
+       <div class="button-row"><button class="button" id="update-later" type="button">Später</button>${app.installable ? '<button class="button primary" id="update-now" type="button">Jetzt aktualisieren</button>' : `<a class="button primary" href="${esc(app.page)}" target="_blank" rel="noopener noreferrer">Release öffnen ↗</a>`}</div>`
+    : `<p class="lead" style="font-size:14px">${app.error ? esc(app.error) : `Du nutzt die neueste Version <strong>${esc(app.current)}</strong>.`}</p><div class="button-row"><button class="button" id="update-later" type="button">Schließen</button></div>`;
+  layer.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="update-title"><div class="modal-top"><div><div class="eyebrow">MINECRAFT HOST</div><h2 id="update-title">${app.available ? 'Update verfügbar' : 'Updates'}</h2></div><button class="icon-button" id="close-update-modal" aria-label="Schließen">×</button></div>${body}</div>`;
+  document.body.appendChild(layer);
+  const close = () => { layer.remove(); modalOpen = false; };
+  $('#close-update-modal', layer).onclick = close;
+  $('#update-later', layer).onclick = () => { if (app.available) updateDismissed = app.latest; renderUpdate(); close(); };
+  const now = $('#update-now', layer);
+  if (now) now.onclick = async () => {
+    now.disabled = true; now.textContent = 'Wird geladen …';
+    try { const result = await api('/api/update/install', {}); close(); showUpdateOverlay(result.version); }
+    catch (err) { showToast(err.message); now.disabled = false; now.textContent = 'Jetzt aktualisieren'; }
+  };
+}
+function showUpdateOverlay(version) {
+  const el = document.createElement('div'); el.className = 'launch'; el.setAttribute('role', 'status');
+  el.innerHTML = `<div class="launch-core"><span class="launch-block" aria-hidden="true"></span><div class="launch-title">UPDATE ${esc(version)}</div><div class="launch-sub">Wird installiert · Minecraft Host startet neu …</div><div class="launch-bar" aria-hidden="true"></div></div>`;
+  document.body.appendChild(el);
+  // Wait for the old instance to go away and the new one to answer, then reload this tab.
+  const started = Date.now(); let wentDown = false;
+  const poll = setInterval(async () => {
+    try {
+      const res = await fetch('/api/state', {cache: 'no-store'}); const data = await res.json();
+      if (wentDown || data.app?.current === version) { clearInterval(poll); location.reload(); }
+    } catch { wentDown = true; }
+    if (Date.now() - started > 180000) { clearInterval(poll); el.querySelector('.launch-sub').textContent = 'Neustart dauert ungewöhnlich lange. Bitte MinecraftHost.exe manuell starten.'; }
+  }, 1500);
+}
+$('#update-pill').addEventListener('click', () => showUpdateModal(false));
+$('#version-tag').addEventListener('click', () => showUpdateModal(true));

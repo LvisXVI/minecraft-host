@@ -31,6 +31,7 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 | 📈 **Live data** | Player count, local response time, real RAM usage, uptime and, from 1.20.3, mean tick time with estimated TPS. |
 | 💻 **Console** | Run `list`, `say Hello` or `whitelist add Name` from the app (without `/`). |
 | 🤝 **Host together** | Two PCs, one world: Syncthing transfers the verified world state encrypted, so a friend can take over while your PC is off. |
+| 🔄 **Self-update** | The top bar shows when a new release is out. One click downloads it from GitHub, verifies it against the release's SHA-256 checksums and restarts – servers and worlds are untouched, and a running server blocks the update. |
 | 🎨 **Five designs** | Cherry Grove, Aurora, Crystal Valley, Nether and Daylight – a Liquid Glass interface with smooth transitions, switchable in the top bar. |
 
 <p align="center"><img src="docs/media/host-connect.webp" alt="Radmin VPN address, firewall check and shared hosting" width="100%"></p>
@@ -38,11 +39,17 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 ## 🚀 Getting started
 
 1. Download the **portable ZIP** from [Releases](https://github.com/LvisXVI/minecraft-host/releases/latest) and unzip it.
-2. Run **`MinecraftHost.exe`** – no Python needed. The dashboard opens at `http://127.0.0.1:18765` and is only reachable from this PC.
+2. Run **`MinecraftHost.exe`** (keep it next to the `_internal` folder) – no Python needed. The dashboard opens at `http://127.0.0.1:18765` and is only reachable from this PC.
 3. Import a modpack or create a new server, then set RAM, port and Java.
 4. Read the [Minecraft EULA](https://www.minecraft.net/eula), accept it in the app, save and start the server.
 
 From source: install Python 3.11+ and run `Start Minecraft Host.cmd`. The app only uses the Python standard library.
+
+## 🔄 Updates
+
+From 1.1.0 on, Minecraft Host checks GitHub for new releases at start and every few hours. Click **Update** in the top bar (or the version number to check now), read the release notes and choose **Update now**. The app downloads the portable ZIP, verifies it against `SHA256SUMS.txt`, closes itself, swaps its files and starts again; the browser tab reloads on its own. Stop running servers first – the update refuses to start while one is running. Coming from 1.0.x, download 1.1.0 once by hand.
+
+> **Antivirus note:** Microsoft Defender's machine-learning scanner sometimes flags Python-built apps (reported as `Trojan:Win32/Bearfoos!ml`). From 1.1.0 on the app ships as a normal folder build without self-extraction or UPX packing, which avoids the trigger in testing. If it is flagged anyway, compare the file with `SHA256SUMS.txt` and report it to Microsoft as a false positive.
 
 ## 🌍 Inviting friends
 
@@ -79,7 +86,8 @@ The app blocks a start while the other copy reports itself as active or the worl
 ```powershell
 python app.py                      # dashboard on http://127.0.0.1:18765
 pip install pyinstaller
-pyinstaller MinecraftHost.spec     # dist\MinecraftHost.exe
+python -m unittest discover tests  # updater tests
+pyinstaller MinecraftHost.spec     # dist\MinecraftHost\ (MinecraftHost.exe + _internal)
 ```
 
 For the portable package, place `gate.exe`, `playit-agent.exe` and `syncthing.exe` next to the EXE.

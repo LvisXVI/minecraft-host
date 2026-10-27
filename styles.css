@@ -318,3 +318,16 @@ body[data-design="day"] a, body[data-design="day"] .small-link { color: #1667c2;
 @keyframes dzOut { to { opacity: 0; filter: blur(10px); } }
 @keyframes dzIn { from { opacity: 0; filter: blur(10px); } }
 @media (max-width: 650px) { .design-toggle span:last-child { display: none; } .local-tag { display: none; } }
+
+/* ---------- Self-update ---------- */
+.version-tag { min-height: 30px; padding: 0 10px; border-radius: 999px; font: 600 11px "Cascadia Mono", Consolas, monospace; color: var(--ink-3); background: transparent; border: 1px solid var(--line-soft); transition: color .2s, background .2s; }
+.version-tag:hover { color: var(--ink); background: rgba(255, 255, 255, .08); }
+.update-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border-radius: 999px; font-size: 12px; font-weight: 800; color: var(--accent-ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 60%, white), var(--accent)); border: 1px solid rgba(255, 255, 255, .45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 8px 22px -10px var(--accent); animation: pillIn .5s var(--spring) both, pillGlow 2.6s ease-in-out 1s infinite; }
+.update-pill::before { content: "↑"; font-size: 13px; }
+.update-pill[hidden] { display: none; }
+@keyframes pillIn { from { opacity: 0; transform: scale(.7); } }
+@keyframes pillGlow { 50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 8px 30px -6px var(--accent); } }
+.update-notes { max-height: 260px; overflow: auto; margin: 14px 0; padding: 14px 16px; border-radius: 16px; background: var(--well); border: 1px solid var(--line-soft); font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+@media (max-width: 650px) { .version-tag { display: none; } }

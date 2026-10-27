@@ -22,6 +22,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from shared_host import SharedHost
+import updater
 
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "MinecraftHost"
@@ -31,7 +32,7 @@ MAX_ARCHIVE = 4 * 1024**3
 MAX_UNPACKED = 12 * 1024**3
 MAX_FILE = 2 * 1024**3
 HOST = "127.0.0.1"
-PORT = 18765
+PORT = int(os.environ.get("MINECRAFT_HOST_PORT", "18765"))
 LOCK = threading.RLock()
 PROCESSES: dict[str, subprocess.Popen] = {}
 LOGS: dict[str, deque] = {}
@@ -51,6 +52,7 @@ READ_THREADS: dict[str, threading.Thread] = {}
 SHARED = SharedHost(DATA_DIR, Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else APP_DIR.parent)
 SHARED_INFO_CACHE: dict[str, tuple[float, dict]] = {}
 SHARED_PUBLISHING: set[str] = set()
+SERVER: "LocalHTTPServer | None" = None
 WORLD_LOCK = threading.RLock()
 
 
@@ -1019,7 +1021,8 @@ def state() -> dict:
                 "tunnel_claim": TUNNEL_CLAIM if TUNNEL and TUNNEL.poll() is None else "",
                 "gate_running": bool(GATE and GATE.poll() is None),
                 "gate_profile_id": GATE_PROFILE_ID if GATE and GATE.poll() is None else "",
-                "gate_connected": GATE_CONNECTED if GATE and GATE.poll() is None else False}
+                "gate_connected": GATE_CONNECTED if GATE and GATE.poll() is None else False,
+                "app": updater.public_status()}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1072,6 +1075,20 @@ class Handler(BaseHTTPRequestHandler):
             return self.json({"error": "Anfrage von fremder Website blockiert."}, 403)
         path = urlparse(self.path).path
         try:
+            if path == "/api/update/check":
+                updater.check(force=True)
+                return self.json(updater.public_status())
+            if path == "/api/update/install":
+                with LOCK:
+                    running = [p["name"] for p in CONFIG["profiles"] if (proc := PROCESSES.get(p["id"])) and proc.poll() is None]
+                    working = [p["name"] for p in CONFIG["profiles"] if (JOBS.get(p["id"]) or {}).get("status") == "working"]
+                busy = (f"Bitte zuerst den Server stoppen: {', '.join(running)}." if running
+                        else f"Bitte warten, bis die Einrichtung fertig ist: {', '.join(working)}." if working
+                        else "Bitte warten, bis der Weltstand übertragen ist." if SHARED_PUBLISHING else "")
+                result = updater.install(DATA_DIR, busy)
+                # Give the response time to reach the browser, then exit so the helper can swap files.
+                threading.Timer(1.0, lambda: SERVER and SERVER.shutdown()).start()
+                return self.json(result)
             if path == "/api/modrinth/inspect":
                 return self.json(inspect_modrinth(str(self.body().get("url", ""))))
             if path == "/api/modrinth/import":
@@ -1317,9 +1334,10 @@ class LocalHTTPServer(ThreadingHTTPServer):
 
 
 def main() -> None:
+    global SERVER
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        server = LocalHTTPServer((HOST, PORT), Handler)
+        server = SERVER = LocalHTTPServer((HOST, PORT), Handler)
     except OSError as ex:
         print(f"Minecraft Host kann Port {PORT} nicht öffnen: {ex}")
         print("Ist Minecraft Host bereits geöffnet? Schließe zuerst die andere Instanz.")
@@ -1329,7 +1347,10 @@ def main() -> None:
             pass
         return
     print(f"Minecraft Host läuft unter http://{HOST}:{PORT}")
-    threading.Timer(0.8, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
+    # After a self-update the old browser tab reloads itself, so no second tab is opened.
+    if "--no-browser" not in sys.argv:
+        threading.Timer(0.8, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
+    updater.start_background_checks()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -1349,6 +1370,7 @@ def main() -> None:
         if TUNNEL and TUNNEL.poll() is None:
             TUNNEL.terminate()
         stop_gate()
+        SHARED.stop()
         server.server_close()
 
 

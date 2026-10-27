@@ -75,6 +75,17 @@ class SharedHost:
                 time.sleep(0.25)
         raise ValueError("Syncthing antwortet nicht auf diesem PC.")
 
+    def stop(self) -> None:
+        """Stop the Syncthing process this app started (on exit and before updates)."""
+        with self._lock:
+            proc, self._process = self._process, None
+        if proc and proc.poll() is None:
+            try:
+                self.api("POST", "/rest/system/shutdown")
+                proc.wait(timeout=10)
+            except Exception:
+                proc.terminate()
+
     def api(self, method: str, path: str, data=None):
         payload = None if data is None else json.dumps(data).encode("utf-8")
         request = Request(f"http://127.0.0.1:{self.api_port}" + path, data=payload, method=method,
