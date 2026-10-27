@@ -29,10 +29,18 @@ async function refresh(force = false) {
     if (!selected && state.profiles.length) selected = state.profiles[0].id;
     if (selected && !state.profiles.some(p => p.id === selected)) selected = state.profiles[0]?.id || null;
     const editing = ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName);
-    if (force || (!editing && !modalOpen)) render();
+    // Polling returns the same state most of the time; rebuild the DOM only when something
+    // visible changed (logs are patched separately, uptime is shown per minute).
+    const key = viewKey();
+    if (force || (!editing && !modalOpen && key !== lastViewKey)) { render(); lastViewKey = key; }
     else updateLogs();
     endLaunch();
   } catch (err) { showToast(err.message); }
+}
+let lastViewKey = '';
+function viewKey() {
+  const profiles = state.profiles.map(p => ({...p, logs: p.logs?.length || 0}));
+  return JSON.stringify([{...state, profiles}, selected, Math.floor(Date.now() / 60000)]);
 }
 function profile() { return state.profiles.find(p => p.id === selected); }
 function status(p) {
