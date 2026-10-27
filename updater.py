@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.2.3"
+APP_VERSION = "1.2.4"
 REPO = "LvisXVI/minecraft-host"
 RELEASE_API = f"https://api.github.com/repos/{REPO}/releases/latest"
 ASSET_NAME = "MinecraftHost-Portable-Windows.zip"
@@ -128,10 +128,18 @@ def expected_sha256(sums_text: str, name: str = ASSET_NAME) -> str:
 
 def _extract(package: Path, target: Path) -> None:
     with zipfile.ZipFile(package) as zf:
+        names = [PurePosixPath(i.filename.replace("\\", "/")) for i in zf.infolist()]
+        # A package that wraps everything in one folder (MinecraftHost/…) is unwrapped, so both layouts install.
+        top = names[0].parts[:1] if names else ()
+        wrapped = bool(top) and all(n.parts[:1] == top for n in names) and PurePosixPath(*top, "MinecraftHost.exe") in names
         for info in zf.infolist():
             name = PurePosixPath(info.filename.replace("\\", "/"))
             if name.is_absolute() or ".." in name.parts or (name.parts and ":" in name.parts[0]):
                 raise ValueError(f"Unsicherer Pfad im Update: {info.filename}")
+            if wrapped:
+                name = PurePosixPath(*name.parts[1:])
+                if not name.parts:
+                    continue
             out = target.joinpath(*name.parts)
             if info.is_dir():
                 out.mkdir(parents=True, exist_ok=True)

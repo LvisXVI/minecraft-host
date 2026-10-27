@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Minecraft Host: a grass block served from a server slab, with status lights and a signal arc, on a teal glass tile -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14706c"/><stop offset=".55" stop-color="#0b3f40"/><stop offset="1" stop-color="#05201f"/></linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".3" r=".55"><stop offset="0" stop-color="#7fffd4" stop-opacity=".5"/><stop offset="1" stop-color="#7fffd4" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".4" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient>
+    <clipPath id="clip"><rect x="8" y="8" width="240" height="240" rx="58"/></clipPath>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#tile)"/>
+  <g clip-path="url(#clip)">
+    <rect x="8" y="8" width="240" height="240" fill="url(#glow)"/>
+    <path d="M8 104 L248 24 L248 66 L8 146 Z" fill="#fff" opacity=".05"/>
+    <ellipse cx="128" cy="218" rx="78" ry="15" fill="url(#shadow)"/>
+  </g>
+  <!-- server slab -->
+  <g transform="translate(128 176)">
+    <path d="M0 -24 L62 7 L0 38 L-62 7 Z" fill="#3a4a58"/>
+    <path d="M-62 7 L0 38 L0 66 L-62 35 Z" fill="#202b36"/>
+    <path d="M62 7 L0 38 L0 66 L62 35 Z" fill="#17202a"/>
+    <!-- status lights and vent slits on the front-left face -->
+    <path d="M-52 19 l9 4.5 v4 l-9 -4.5 Z" fill="#7fffd4"/><path d="M-36 27 l9 4.5 v4 l-9 -4.5 Z" fill="#7fffd4"/><path d="M-20 35 l9 4.5 v4 l-9 -4.5 Z" fill="#ffd166"/>
+    <path d="M12 50 L50 31 M12 56 L50 37" stroke="#3a4a58" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+    <path d="M0 -24 L62 7 L0 38 L-62 7 Z" fill="none" stroke="#9fe8dc" stroke-opacity=".45" stroke-width="1.5"/>
+  </g>
+  <!-- grass block on the slab -->
+  <g transform="translate(128 126)">
+    <path d="M0 -26 L48 -2 L0 22 L-48 -2 Z" fill="#74e06c"/>
+    <path d="M-48 -2 L0 22 L0 58 L-48 34 Z" fill="#8d5b2c"/>
+    <path d="M48 -2 L0 22 L0 58 L48 34 Z" fill="#6c4321"/>
+    <path d="M-48 -2 L0 22 L0 31 L-8 27 L-8 33 L-20 27 L-20 23 L-32 17 L-32 23 L-42 18 L-42 10 L-48 6 Z" fill="#52c454"/>
+    <path d="M48 -2 L0 22 L0 31 L10 26 L10 32 L22 26 L22 20 L34 14 L34 20 L44 15 L44 9 L48 7 Z" fill="#3fa346"/>
+    <path d="M-38 30 l6 3 v5 l-6 -3 Z M-20 40 l6 3 v5 l-6 -3 Z M16 40 l6 -3 v5 l-6 3 Z M34 30 l6 -3 v5 l-6 3 Z" fill="#5a3618" opacity=".7"/>
+    <path d="M0 -26 L48 -2 L0 22 L-48 -2 Z" fill="none" stroke="#c9ffc2" stroke-opacity=".5" stroke-width="1.5"/>
+  </g>
+  <!-- signal arcs -->
+  <g fill="none" stroke="#bffcf0" stroke-linecap="round">
+    <path d="M100 54 a38 38 0 0 1 56 0" stroke-width="8" opacity=".95"/>
+    <path d="M82 36 a64 64 0 0 1 92 0" stroke-width="8" opacity=".6"/>
+  </g>
+  <circle cx="128" cy="66" r="7" fill="#fff"/>
+  <rect x="9.5" y="9.5" width="237" height="237" rx="56.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+</svg>

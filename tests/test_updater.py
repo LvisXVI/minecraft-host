@@ -62,6 +62,18 @@ class UpdaterTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             updater._download("https://example.com/evil.zip", Path(tempfile.gettempdir()) / "x.zip")
 
+    def test_extract_accepts_flat_and_single_folder_packages(self):
+        for prefix in ("", "MinecraftHost/"):
+            with tempfile.TemporaryDirectory() as tmp:
+                package = Path(tmp) / "update.zip"
+                with zipfile.ZipFile(package, "w") as zf:
+                    zf.writestr(prefix + "MinecraftHost.exe", "exe")
+                    zf.writestr(prefix + "_internal/base.dll", "dll")
+                out = Path(tmp) / "out"
+                updater._extract(package, out)
+                self.assertTrue((out / "MinecraftHost.exe").is_file(), prefix)
+                self.assertTrue((out / "_internal" / "base.dll").is_file(), prefix)
+
     def test_extract_rejects_traversal_and_requires_exe(self):
         with tempfile.TemporaryDirectory() as tmp:
             bad = Path(tmp) / "bad.zip"
