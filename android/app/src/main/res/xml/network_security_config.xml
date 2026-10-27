@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minecraft Host listens on plain HTTP in the home network or a Tailscale tailnet (WireGuard-encrypted). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

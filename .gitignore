@@ -4,3 +4,11 @@ __pycache__/
 *.zip
 dist/
 build/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.p12
+*.jks

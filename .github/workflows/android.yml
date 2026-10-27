@@ -1,0 +1,72 @@
+name: Android app
+
+on:
+  push:
+    tags: ["android-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Version from tag
+        run: |
+          name="${GITHUB_REF_NAME#android-v}"
+          [ "$GITHUB_REF_TYPE" = "tag" ] || name="0.0.${GITHUB_RUN_NUMBER}"
+          echo "ANDROID_VERSION_NAME=$name" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_CODE=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.p12"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.p12"
+            echo "ANDROID_KEYSTORE_PASSWORD=$PASSWORD"
+            echo "ANDROID_KEY_PASSWORD=$PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ALIAS"
+          } >> "$GITHUB_ENV"
+
+      - name: Build APK
+        run: gradle -p android assembleRelease --no-daemon
+
+      - name: Collect
+        run: |
+          mkdir out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/MCHost-Remote-${ANDROID_VERSION_NAME}.apk"
+          (cd out && sha256sum *.apk > SHA256SUMS-android.txt)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: out/*
+
+      # Not "latest": the desktop self-updater reads the latest release and must keep finding the Windows build.
+      - name: Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MC Host for Android ${{ env.ANDROID_VERSION_NAME }}
+          make_latest: "false"
+          files: out/*
+          body: |
+            Remote control for Minecraft Host: start and stop servers, read the console, send commands, change settings, create servers and Modrinth imports, and switch the playit tunnel – from your phone.
+
+            **Setup:** install the APK (allow installs from your browser once). In Minecraft Host 1.2.0 or newer, click **📱 Handy** and turn on remote control, then enter the address and pairing code in the app. For use away from home, install Tailscale on PC and phone with the same account and use the 100.x address.

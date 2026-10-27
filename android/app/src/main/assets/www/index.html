@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>MC Host</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <div class="launch" id="launch" aria-hidden="true">
+    <div class="launch-block"><span></span><span></span><span></span></div>
+    <strong>MC HOST</strong>
+    <small>Fernsteuerung</small>
+  </div>
+
+  <header class="bar">
+    <button class="bar-back" id="back" type="button" aria-label="Zurück" hidden>‹</button>
+    <div class="bar-title"><small id="bar-kicker">MINECRAFT HOST</small><strong id="bar-title">Server</strong></div>
+    <span class="link-dot" id="link-dot" title="Verbindung"></span>
+  </header>
+
+  <main id="screens"></main>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button type="button" data-tab="servers" aria-current="true"><span aria-hidden="true">▦</span>Server</button>
+    <button type="button" data-tab="create"><span aria-hidden="true">＋</span>Neu</button>
+    <button type="button" data-tab="tunnel"><span aria-hidden="true">⇄</span>Tunnel</button>
+    <button type="button" data-tab="settings"><span aria-hidden="true">⚙</span>Verbindung</button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

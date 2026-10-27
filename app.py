@@ -22,6 +22,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from shared_host import SharedHost
+import remote
 import updater
 
 APP_DIR = Path(__file__).resolve().parent
@@ -69,6 +70,8 @@ def load_config() -> dict:
 CONFIG = load_config()
 CONFIG.setdefault("profiles", [])
 CONFIG.setdefault("playit_path", "")
+CONFIG.setdefault("remote", {"enabled": False, "port": remote.DEFAULT_PORT, "token": ""})
+REMOTE: "remote.RemoteServer | None" = None
 if not CONFIG["playit_path"]:
     bundled_agent = Path(sys.executable).resolve().parent / "playit-agent.exe" if getattr(sys, "frozen", False) else APP_DIR.parent / "playit-agent.exe"
     if bundled_agent.is_file():
@@ -1022,7 +1025,16 @@ def state() -> dict:
                 "gate_running": bool(GATE and GATE.poll() is None),
                 "gate_profile_id": GATE_PROFILE_ID if GATE and GATE.poll() is None else "",
                 "gate_connected": GATE_CONNECTED if GATE and GATE.poll() is None else False,
-                "app": updater.public_status()}
+                "app": updater.public_status(),
+                "remote": remote_state(),
+                "tailscale_ip": next((a["address"] for a in remote.addresses() if a["kind"] == "tailscale"), "")}
+
+
+def remote_state() -> dict:
+    cfg = CONFIG["remote"]
+    return {"enabled": bool(cfg.get("enabled")), "port": int(cfg.get("port") or remote.DEFAULT_PORT),
+            "code": remote.format_token(cfg.get("token", "")), "running": bool(REMOTE and REMOTE.running),
+            "error": REMOTE.error if REMOTE else "", "addresses": remote.addresses() if cfg.get("enabled") else []}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1089,6 +1101,27 @@ class Handler(BaseHTTPRequestHandler):
                 # Give the response time to reach the browser, then exit so the helper can swap files.
                 threading.Timer(1.0, lambda: SERVER and SERVER.shutdown()).start()
                 return self.json(result)
+            if path == "/api/remote/config":
+                data = self.body()
+                port = int(data.get("port", CONFIG["remote"].get("port") or remote.DEFAULT_PORT))
+                if not (1024 <= port <= 65535) or port == PORT:
+                    raise ValueError("Port für die Fernsteuerung: 1024–65535, nicht der Port dieser App.")
+                with LOCK:
+                    CONFIG["remote"]["enabled"] = bool(data.get("enabled"))
+                    CONFIG["remote"]["port"] = port
+                    if not CONFIG["remote"].get("token"):
+                        CONFIG["remote"]["token"] = remote.new_token()
+                    save_config()
+                if REMOTE:
+                    REMOTE.apply(CONFIG["remote"])
+                return self.json(remote_state())
+            if path == "/api/remote/rotate":
+                with LOCK:
+                    CONFIG["remote"]["token"] = remote.new_token()
+                    save_config()
+                if REMOTE:
+                    REMOTE.apply(CONFIG["remote"])
+                return self.json(remote_state())
             if path == "/api/modrinth/inspect":
                 return self.json(inspect_modrinth(str(self.body().get("url", ""))))
             if path == "/api/modrinth/import":
@@ -1334,7 +1367,7 @@ class LocalHTTPServer(ThreadingHTTPServer):
 
 
 def main() -> None:
-    global SERVER
+    global SERVER, REMOTE
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     try:
         server = SERVER = LocalHTTPServer((HOST, PORT), Handler)
@@ -1351,11 +1384,14 @@ def main() -> None:
     if "--no-browser" not in sys.argv:
         threading.Timer(0.8, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
     updater.start_background_checks()
+    REMOTE = remote.RemoteServer(Handler)
+    REMOTE.apply(CONFIG["remote"])
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        REMOTE.stop()
         for pid, proc in list(PROCESSES.items()):
             if proc.poll() is None:
                 try:

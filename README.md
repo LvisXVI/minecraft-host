@@ -32,6 +32,7 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 | 💻 **Console** | Run `list`, `say Hello` or `whitelist add Name` from the app (without `/`). |
 | 🤝 **Host together** | Two PCs, one world: Syncthing transfers the verified world state encrypted, so a friend can take over while your PC is off. |
 | 🔄 **Self-update** | The top bar shows when a new release is out. One click downloads it from GitHub, verifies it against the release's SHA-256 checksums and restarts – servers and worlds are untouched, and a running server blocks the update. |
+| 📱 **Android remote** | The **MC Host** app starts and stops servers, shows the colour-coded console, sends commands, changes settings, creates servers, imports Modrinth packs and switches the tunnel – at home or, with Tailscale, from anywhere. |
 | 🎨 **Five designs** | Cherry Grove, Aurora, Crystal Valley, Nether and Daylight – a Liquid Glass interface with smooth transitions, switchable in the top bar. |
 
 <p align="center"><img src="docs/media/host-connect.webp" alt="Radmin VPN address, firewall check and shared hosting" width="100%"></p>
@@ -51,9 +52,19 @@ From 1.1.0 on, Minecraft Host checks GitHub for new releases at start and every 
 
 > **Antivirus note:** Microsoft Defender's machine-learning scanner sometimes flags Python-built apps (reported as `Trojan:Win32/Bearfoos!ml`). From 1.1.0 on the app ships as a normal folder build without self-extraction or UPX packing, which avoids the trigger in testing. If it is flagged anyway, compare the file with `SHA256SUMS.txt` and report it to Microsoft as a false positive.
 
+## 📱 Android app (remote control)
+
+1. Download `MCHost-Remote-*.apk` from the [Android release](https://github.com/LvisXVI/minecraft-host/releases?q=android) and install it (allow installs from your browser once).
+2. In Minecraft Host 1.2.0+, click **📱 Handy** in the top bar and turn on **Fernsteuerung erlauben**. The dialog shows the PC's addresses and a pairing code.
+3. Enter address and code in the app. On the home Wi-Fi the LAN address works; **away from home** install [Tailscale](https://tailscale.com/download) on PC and phone with the same account and use the `100.x` address.
+
+The remote listener (port 18766) is off by default, needs the 120-bit pairing code on every request, blocks a client after repeated wrong codes and only exposes server control – self-update, file dialogs, Explorer, firewall prompts and Syncthing pairing stay on the PC. It speaks plain HTTP, so use it in your home network or over Tailscale (WireGuard-encrypted), not through a public port forward. **Neuen Code erzeugen** disconnects every paired phone.
+
 ## 🌍 Inviting friends
 
 **Recommended: [Radmin VPN](https://www.radmin-vpn.com/) (free, no port forwarding).** Everyone joins the same private Radmin network. Minecraft Host shows the hosting PC's Radmin address with the port and checks whether Windows Firewall lets Java through on the (public) Radmin network.
+
+**Also free: [Tailscale](https://tailscale.com/download).** Share the hosting PC with friends from the Tailscale admin console (or invite them to your tailnet); they join with the `100.x` address and port shown in the server view. Encrypted, no port forwarding, and the same connection serves the Android app. (Tailscale Funnel only forwards HTTPS, so it cannot expose Minecraft publicly.)
 
 Other options:
 
