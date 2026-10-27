@@ -32,7 +32,7 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 | 💻 **Console** | Run `list`, `say Hello` or `whitelist add Name` from the app (without `/`). |
 | 🤝 **Host together** | Two PCs, one world: Syncthing transfers the verified world state encrypted, so a friend can take over while your PC is off. |
 | 🔄 **Self-update** | The top bar shows when a new release is out. One click downloads it from GitHub, verifies it against the release's SHA-256 checksums and restarts – servers and worlds are untouched, and a running server blocks the update. |
-| 📱 **Android remote** | The **MC Host** app starts and stops servers, shows the colour-coded console, sends commands, changes settings, creates servers, imports Modrinth packs and switches the tunnel – at home or, with Tailscale, from anywhere. |
+| 📱 **Android app** | Host Vanilla/Fabric servers directly on your phone, or control this PC: the **MC Host** app starts and stops servers, shows the colour-coded console, sends commands, changes settings, creates servers, imports Modrinth packs and switches the tunnel – at home or, with Tailscale, from anywhere. |
 | 🎨 **Five designs** | Cherry Grove, Aurora, Crystal Valley, Nether and Daylight – a Liquid Glass interface with smooth transitions, switchable in the top bar. |
 
 <p align="center"><img src="docs/media/host-connect.webp" alt="Radmin VPN address, firewall check and shared hosting" width="100%"></p>
@@ -52,7 +52,14 @@ From 1.1.0 on, Minecraft Host checks GitHub for new releases at start and every 
 
 > **Antivirus note:** Microsoft Defender's machine-learning scanner sometimes flags Python-built apps (reported as `Trojan:Win32/Bearfoos!ml`). From 1.1.0 on the app ships as a normal folder build without self-extraction or UPX packing, which avoids the trigger in testing. If it is flagged anyway, compare the file with `SHA256SUMS.txt` and report it to Microsoft as a false positive.
 
-## 📱 Android app (remote control)
+## 📱 Android app
+
+The **MC Host** app has two modes – switch any time under *Verbindung*:
+
+- **Control your PC** (below): everything Minecraft Host does, from your phone.
+- **Host on the phone:** create a Vanilla or Fabric server (Minecraft 1.18+) right on the phone and start it with the bundled Java 25. Friends join on the same Wi-Fi, through Tailscale, or through a playit address. A notification keeps the server alive with the screen off; use a charger and Wi-Fi. Needs an ARM64 phone; 2 GB server RAM and a few players work well, large modpacks don't. The app targets Android API 28 on purpose: newer targets forbid starting a bundled runtime from app storage.
+
+### Remote control setup
 
 1. Download `MCHost-Remote-*.apk` from the [Android release](https://github.com/LvisXVI/minecraft-host/releases?q=android) and install it (allow installs from your browser once).
 2. In Minecraft Host 1.2.0+, click **📱 Handy** in the top bar and turn on **Fernsteuerung erlauben**. The dialog shows the PC's addresses and a pairing code.
@@ -104,6 +111,8 @@ pyinstaller MinecraftHost.spec     # dist\MinecraftHost\ (MinecraftHost.exe + _i
 For the portable package, place `gate.exe`, `playit-agent.exe` and `syncthing.exe` next to the EXE.
 
 ## 📚 Technical notes & third-party software
+
+- **Android app:** bundles OpenJDK 25 for Android (GPL-2.0 with Classpath Exception) from [AngelAuraMC/angelauramc-openjdk-build](https://github.com/AngelAuraMC/angelauramc-openjdk-build), unmodified apart from removed developer tools; source at [openjdk.org](https://openjdk.org/).
 
 - `.mrpack` handling follows the [Modrinth format specification](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack); NeoForge setup follows the [official server guide](https://docs.neoforged.net/user/docs/server/).
 - Bundled in the release, each taken from official releases and checked by SHA256: [playit-agent 0.17.1](https://github.com/playit-cloud/playit-agent/releases/tag/v0.17.1), [Gate 0.75.3](https://github.com/minekube/gate/releases/tag/v0.75.3), [Syncthing](https://github.com/syncthing/syncthing/releases). Their own licences apply.

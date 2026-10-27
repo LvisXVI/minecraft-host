@@ -44,6 +44,24 @@ jobs:
             echo "ANDROID_KEY_ALIAS=$ALIAS"
           } >> "$GITHUB_ENV"
 
+      # OpenJDK 25 for Android (GPL-2.0 with Classpath Exception), built by AngelAuraMC.
+      # Pinned by checksum; trimmed to what a headless Minecraft server needs.
+      - name: Java runtime for phone hosting
+        env:
+          JRE_URL: https://github.com/AngelAuraMC/angelauramc-openjdk-build/releases/download/download_jre25/jre25-android-arm64.tar.xz
+          JRE_SHA256: d3eb7afe2240c26728a1bb440502c5f18ac3883e932d202dd7f0c9bcbbce4c37
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/jre.tar.xz" "$JRE_URL"
+          echo "$JRE_SHA256  $RUNNER_TEMP/jre.tar.xz" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/jre"
+          tar -xJf "$RUNNER_TEMP/jre.tar.xz" -C "$RUNNER_TEMP/jre"
+          cd "$RUNNER_TEMP/jre"
+          find bin -type f ! -name java -delete
+          rm -rf lib/ct.sym lib/src.zip lib/fonts include jmods man demo
+          mkdir -p "$GITHUB_WORKSPACE/android/app/src/main/assets/runtime"
+          zip -qr -9 "$GITHUB_WORKSPACE/android/app/src/main/assets/runtime/jre.zip" .
+          ls -la "$GITHUB_WORKSPACE/android/app/src/main/assets/runtime"
+
       - name: Build APK
         run: gradle -p android assembleRelease --no-daemon
 
@@ -67,6 +85,11 @@ jobs:
           make_latest: "false"
           files: out/*
           body: |
-            Remote control for Minecraft Host: start and stop servers, read the console, send commands, change settings, create servers and Modrinth imports, and switch the playit tunnel – from your phone.
+            **MC Host for Android** – two modes in one app:
 
-            **Setup:** install the APK (allow installs from your browser once). In Minecraft Host 1.2.0 or newer, click **📱 Handy** and turn on remote control, then enter the address and pairing code in the app. For use away from home, install Tailscale on PC and phone with the same account and use the 100.x address.
+            - **Control your PC:** start and stop servers on Minecraft Host, live console, commands, settings, new servers, Modrinth imports and the tunnel. Needs Minecraft Host 1.2.0+: click **📱 Handy**, turn on remote control and pair with the shown address and code. Away from home, install Tailscale on PC and phone and use the 100.x address.
+            - **Host on this phone:** create a Vanilla or Fabric server (Minecraft 1.18+), start it with the built-in Java 25 and play with friends on the same Wi-Fi, via Tailscale or a playit address. A notification keeps the server running with the screen off – best on the charger. ARM64 phones, 2 GB server RAM recommended.
+
+            Install the APK (allow installs from your browser once). Android may note that the app was built for an older Android version: phone hosting needs that to start the bundled Java runtime.
+
+            Java runtime: OpenJDK 25 (GPL-2.0 with Classpath Exception) built for Android by [AngelAuraMC](https://github.com/AngelAuraMC/angelauramc-openjdk-build); source at [openjdk.org](https://openjdk.org/).

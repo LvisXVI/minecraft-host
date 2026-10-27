@@ -12,3 +12,4 @@ android/app/build/
 android/local.properties
 *.p12
 *.jks
+android/app/src/main/assets/runtime/

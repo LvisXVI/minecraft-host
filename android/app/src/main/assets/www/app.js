@@ -1,5 +1,6 @@
 'use strict';
-// MC Host remote: controls Minecraft Host on the PC through its remote API (pairing code as bearer token).
+// MC Host: controls Minecraft Host on a PC through its remote API (pairing code as bearer token),
+// or hosts servers on this phone through the app's local host, which answers the same API.
 const DEFAULT_PORT = 18766;
 const POLL_MS = 3000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -10,7 +11,9 @@ const store = {
   get: key => { try { return window.HostApp ? HostApp.get(key) : (localStorage.getItem('mchost.' + key) || ''); } catch { return ''; } },
   set: (key, value) => { try { window.HostApp ? HostApp.set(key, value) : localStorage.setItem('mchost.' + key, value); } catch { /* not persisted */ } },
 };
-let conn = { base: store.get('base'), code: store.get('code') };
+let conn = { mode: store.get('mode'), base: store.get('base'), code: store.get('code') };
+const canHostHere = () => Boolean(window.HostApp && HostApp.local);
+const isLocal = () => conn.mode === 'local';
 let state = null;
 let pollTimer = 0;
 let paused = false;
@@ -26,6 +29,11 @@ function normalizeAddress(input) {
 }
 
 async function api(path, body, target = conn) {
+  if (target.mode === 'local') {
+    const answer = JSON.parse(HostApp.local(body === undefined ? 'GET' : 'POST', path, body === undefined ? '' : JSON.stringify(body)));
+    if (answer.status >= 400) throw new Error(answer.body.error || 'Aktion fehlgeschlagen.');
+    return answer.body;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
@@ -69,9 +77,10 @@ function show(name, params = {}, { replace = false, back = false } = {}) {
   host.append(el);
   const screen = screens[name];
   $('#bar-title').textContent = screen.title(params);
-  $('#bar-kicker').textContent = screen.kicker || 'MINECRAFT HOST';
+  $('#bar-kicker').textContent = screen.kicker || (isLocal() ? 'AUF DIESEM HANDY' : 'MINECRAFT HOST');
   $('#back').hidden = stack.length < 2;
-  $('#tabs').hidden = name === 'pair';
+  $('#tabs').hidden = name === 'pair' || name === 'welcome';
+  $('#tabs [data-tab="tunnel"]').lastChild.textContent = isLocal() ? 'Freunde' : 'Tunnel';
   document.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-current', String(tab.dataset.tab === (screen.tab || name))));
   el.update = screen.render(el, params) || (() => {});
   if (state) el.update(state);
@@ -92,7 +101,7 @@ document.querySelectorAll('[data-tab]').forEach(tab => tab.onclick = () => { sta
 
 /* ---------- polling ---------- */
 async function refresh() {
-  if (!conn.base || !conn.code) return;
+  if (!isLocal() && (!conn.base || !conn.code)) return;
   try {
     state = await api('/api/state');
     $('#link-dot').className = 'link-dot ok';
@@ -127,6 +136,19 @@ function consoleHtml(logs) {
 const LOADER_ICON = { fabric: '🧵', forge: '⚒', neoforge: '🦊', vanilla: '🟩' };
 
 /* ---------- screens ---------- */
+function useLocal() { conn = { ...conn, mode: 'local' }; store.set('mode', 'local'); state = null; startPolling(); refresh(); stack.length = 0; show('servers'); }
+
+screens.welcome = {
+  title: () => 'Willkommen', kicker: 'MC HOST',
+  render(el) {
+    el.innerHTML = `<div class="pair-hero"><div class="launch-block"><span></span><span></span><span></span></div><h1>Wie möchtest du hosten?</h1><p class="muted">Du kannst das später unter „Verbindung“ jederzeit wechseln.</p></div>
+      <button class="card choice" type="button" id="pick-pc"><span class="server-icon">🖥</span><span class="server-main"><strong>PC steuern</strong><small>Minecraft Host läuft am PC – du steuerst ihn von unterwegs.</small></span></button>
+      <button class="card choice" type="button" id="pick-local" ${canHostHere() ? '' : 'disabled'}><span class="server-icon">📱</span><span class="server-main"><strong>Auf diesem Handy hosten</strong><small>${canHostHere() ? 'Vanilla oder Fabric direkt auf dem Handy – ohne PC.' : 'Nur in der Android-App verfügbar.'}</small></span></button>`;
+    $('#pick-pc', el).onclick = () => show('pair');
+    $('#pick-local', el).onclick = useLocal;
+  },
+};
+
 screens.pair = {
   title: () => 'Verbinden', kicker: 'EINRICHTUNG',
   render(el) {
@@ -140,9 +162,9 @@ screens.pair = {
       const button = event.target.querySelector('button');
       button.disabled = true; button.textContent = 'Verbinde …';
       try {
-        const target = { base: normalizeAddress($('#pair-base', el).value), code: $('#pair-code', el).value.trim() };
+        const target = { mode: 'pc', base: normalizeAddress($('#pair-base', el).value), code: $('#pair-code', el).value.trim() };
         const info = await api('/api/remote/ping', undefined, target);
-        conn = target; store.set('base', conn.base); store.set('code', conn.code);
+        conn = target; store.set('mode', 'pc'); store.set('base', conn.base); store.set('code', conn.code);
         toast(`Verbunden mit ${info.name || 'deinem PC'}.`);
         startPolling(); await refresh();
         stack.length = 0; show('servers');
@@ -158,7 +180,7 @@ screens.servers = {
     return (s, error) => {
       const list = $('#list', el);
       if (!s) { if (error) list.innerHTML = `<div class="card"><h2>Keine Verbindung</h2><p class="muted">${esc(error)}</p></div>`; return; }
-      if (!s.profiles.length) { list.innerHTML = '<div class="empty">Noch keine Server.<br>Tippe unten auf <strong>＋ Neu</strong>.</div>'; return; }
+      if (!s.profiles.length) { list.innerHTML = `<div class="empty">${isLocal() ? 'Noch kein Server auf diesem Handy.' : 'Noch keine Server.'}<br>Tippe unten auf <strong>＋ Neu</strong>.</div>`; return; }
       const key = JSON.stringify(s.profiles.map(p => [p.id, p.name, p.running, p.job?.status, p.metrics?.online, p.installed]));
       if (list.dataset.key === key) return;
       list.dataset.key = key;
@@ -182,11 +204,17 @@ screens.server = {
         <form class="command" id="sv-command"><input name="command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Befehl, z. B. list"><button class="btn primary" type="submit" aria-label="Senden">↑</button></form>
         <div class="quick">${['list', 'say Hallo!', 'time set day', 'weather clear', 'save-all', 'whitelist list'].map(c => `<button type="button" data-cmd="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
       <form class="card" id="sv-settings"><span class="label">Einstellungen</span>
-        <div class="row"><div class="field"><span class="hint">RAM</span><select name="ram_mb">${[2048, 3072, 4096, 5120, 6144, 8192, 10240, 12288, 16384].map(n => `<option value="${n}">${n / 1024} GB</option>`).join('')}</select></div>
+        <div class="row"><div class="field"><span class="hint">RAM</span><select name="ram_mb">${(isLocal() ? [512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192].filter(n => n <= (state?.max_ram_mb || 2048)) : [2048, 3072, 4096, 5120, 6144, 8192, 10240, 12288, 16384]).map(n => `<option value="${n}">${n >= 1024 ? n / 1024 + ' GB' : n + ' MB'}</option>`).join('')}</select></div>
         <div class="field"><span class="hint">Port</span><input name="port" inputmode="numeric"></div></div>
         <div class="field"><span class="hint">Öffentliche Adresse (Tunnel)</span><input name="public_address" autocapitalize="off" placeholder="z. B. name.joinmc.link"></div>
         <label class="check"><input type="checkbox" name="eula"> Minecraft-EULA akzeptiert</label>
-        <button class="btn block" type="submit">Speichern</button><p class="hint">Änderungen nur bei gestopptem Server.</p></form>`;
+        <button class="btn block" type="submit">Speichern</button><p class="hint">Änderungen nur bei gestopptem Server.</p></form>
+      ${isLocal() ? '<div class="card"><span class="label">Speicher</span><p class="muted">Löscht den Server mit Welt von diesem Handy.</p><button class="btn danger block" id="sv-delete" type="button">Server löschen</button></div>' : ''}`;
+    const del = $('#sv-delete', el);
+    if (del) del.onclick = () => {
+      if (del.dataset.confirm !== '1') { del.dataset.confirm = '1'; del.textContent = 'Wirklich löschen? Nochmal tippen'; setTimeout(() => { if (del.isConnected) { del.dataset.confirm = ''; del.textContent = 'Server löschen'; } }, 3500); return; }
+      act(del, async () => { await api(`/api/profiles/${id}/delete`, {}); stack.length = 0; show('servers'); }, 'Server gelöscht.');
+    };
     const consoleEl = $('#sv-console', el);
     const send = async command => {
       try { await api(`/api/profiles/${id}/command`, { command }); await refresh(); consoleEl.scrollTop = consoleEl.scrollHeight; }
@@ -225,7 +253,7 @@ screens.server = {
         ['LAUFZEIT', p.running && up ? (up >= 3600 ? `${Math.floor(up / 3600)} h ${Math.floor(up % 3600 / 60)} min` : `${Math.floor(up / 60)} min`) : '—'],
       ].map(([k, v]) => `<div class="metric"><small>${k}</small><strong>${esc(v)}</strong></div>`).join('');
       $('#sv-address', el).textContent = p.public_address || (s.local_ip ? `${s.local_ip}:${p.port}` : `Port ${p.port}`);
-      $('#sv-address-hint', el).textContent = p.public_address ? 'Über deinen Tunnel erreichbar.' : 'Nur im Heimnetz. Für Freunde von außen im Tab „Tunnel“ einen Tunnel starten.';
+      $('#sv-address-hint', el).textContent = p.public_address ? 'Über deinen Tunnel erreichbar.' : isLocal() ? `Im selben WLAN.${s.tailscale_ip ? ` Über Tailscale: ${s.tailscale_ip}:${p.port}.` : ''} Mehr unter „Freunde“.` : 'Nur im Heimnetz. Für Freunde von außen im Tab „Tunnel“ einen Tunnel starten.';
       if (p.logs.length !== lastLogs) {
         const atBottom = consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 40;
         consoleEl.innerHTML = p.logs.length ? consoleHtml(p.logs) : '<span class="hint">Noch keine Ausgabe.</span>';
@@ -243,12 +271,12 @@ screens.server = {
 screens.create = {
   title: () => 'Neuer Server',
   render(el) {
-    el.innerHTML = `<form class="card" id="new-form"><h2>Leerer Server</h2><p class="muted">Installiert Minecraft und den Loader auf dem PC.</p>
+    el.innerHTML = `<form class="card" id="new-form"><h2>Leerer Server</h2><p class="muted">${isLocal() ? 'Lädt Minecraft und Fabric direkt aufs Handy (ca. 50 MB). Ab 1.18; flüssig mit 2 GB RAM und wenigen Mitspielern.' : 'Installiert Minecraft und den Loader auf dem PC.'}</p>
         <div class="field"><span class="label">Name</span><input name="name" value="Mein Server" maxlength="80"></div>
         <div class="row"><div class="field"><span class="label">Version</span><input name="minecraft" value="1.21.1" autocapitalize="off"></div>
-        <div class="field"><span class="label">Loader</span><select name="loader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="vanilla">Vanilla</option></select></div></div>
+        <div class="field"><span class="label">Loader</span><select name="loader"><option value="fabric">Fabric</option>${isLocal() ? '' : '<option value="neoforge">NeoForge</option><option value="forge">Forge</option>'}<option value="vanilla">Vanilla</option></select></div></div>
         <button class="btn primary block" type="submit">Server erstellen</button></form>
-      <form class="card" id="mr-form"><h2>Modpack von Modrinth</h2><p class="muted">Link einfügen, Version wählen, fertig.</p>
+      <form class="card" id="mr-form" ${isLocal() ? 'hidden' : ''}><h2>Modpack von Modrinth</h2><p class="muted">Link einfügen, Version wählen, fertig.</p>
         <div class="field"><input name="url" inputmode="url" autocapitalize="off" placeholder="https://modrinth.com/modpack/…"></div>
         <button class="btn block" type="submit">Versionen laden</button><div id="mr-versions"></div></form>`;
     $('#new-form', el).onsubmit = event => {
@@ -269,8 +297,20 @@ screens.create = {
 };
 
 screens.tunnel = {
-  title: () => 'Tunnel',
+  title: () => isLocal() ? 'Freunde einladen' : 'Tunnel',
   render(el) {
+    if (isLocal()) {
+      el.innerHTML = `<div class="card"><h2>Im selben WLAN</h2><p class="muted">Freunde tragen in Minecraft diese Adresse ein:</p><div class="address"><code id="fr-wifi">–</code></div></div>
+        <div class="card"><h2>Von überall: Tailscale</h2><p class="muted">Tailscale auf dem Handy und bei deinen Freunden installieren und das Handy in der Tailscale-Verwaltung mit ihnen teilen. Verschlüsselt, ohne Router.</p><div class="address"><code id="fr-ts">Tailscale nicht aktiv</code></div><p><a href="https://tailscale.com/download/android" style="color:var(--accent)">Tailscale für Android ↗</a></p></div>
+        <div class="card"><h2>Öffentlich: playit.gg</h2><p class="muted">Die playit-App für Android erstellt eine öffentliche Adresse für den Server-Port. Trage sie danach beim Server als „Öffentliche Adresse“ ein.</p><p><a href="https://playit.gg/download" style="color:var(--accent)">playit herunterladen ↗</a></p></div>
+        <div class="card"><h2>Hinweis</h2><p class="muted">Solange ein Server läuft, hält eine Benachrichtigung das Handy wach. Am besten ans Ladekabel und ins WLAN.</p></div>`;
+      return s => {
+        if (!s) return;
+        const port = s.profiles.find(p => p.running)?.port || s.profiles[0]?.port || 25565;
+        $('#fr-wifi', el).textContent = s.local_ip ? `${s.local_ip}:${port}` : 'Kein WLAN';
+        $('#fr-ts', el).textContent = s.tailscale_ip ? `${s.tailscale_ip}:${port}` : 'Tailscale nicht aktiv';
+      };
+    }
     el.innerHTML = `<div class="card"><h2>playit.gg-Tunnel</h2><p class="muted">Macht deinen Server für Freunde außerhalb deines Netzes erreichbar – kostenlos, ohne Router-Einstellungen.</p>
       <div id="tn-body"><div class="progress"><i></i></div></div></div>
       <div class="card"><h2>Tipp</h2><p class="muted">Die Tunnel-Adresse trägst du im Server unter „Öffentliche Adresse“ ein, damit sie hier und am PC angezeigt wird.</p></div>`;
@@ -292,14 +332,18 @@ screens.tunnel = {
 screens.settings = {
   title: () => 'Verbindung',
   render(el) {
-    el.innerHTML = `<div class="card"><span class="label">PC</span><div class="address"><code>${esc(conn.base.replace(/^https?:\/\//, ''))}</code></div><p class="hint" id="st-state"></p></div>
-      <div class="card"><span class="label">Minecraft Host</span><p class="muted" id="st-version">–</p></div>
-      <button class="btn block" id="st-change" type="button">Anderen PC koppeln</button>
-      <p class="hint" style="text-align:center;margin-top:18px">MC Host · Fernsteuerung für Minecraft Host<br>Quellcode: github.com/LvisXVI/minecraft-host</p>`;
-    $('#st-change', el).onclick = () => { stack.length = 0; show('pair'); };
+    el.innerHTML = `<div class="card"><span class="label">Modus</span><h2>${isLocal() ? '📱 Auf diesem Handy hosten' : '🖥 PC steuern'}</h2>
+        ${isLocal() ? '' : `<div class="address"><code>${esc(conn.base.replace(/^https?:\/\//, '') || 'nicht gekoppelt')}</code></div>`}<p class="hint" id="st-state"></p></div>
+      <div class="card"><span class="label">${isLocal() ? 'App' : 'Minecraft Host'}</span><p class="muted" id="st-version">–</p></div>
+      <div class="stack">${isLocal() ? '<button class="btn block" id="st-pc" type="button">Zum PC wechseln</button>' : `<button class="btn block" id="st-change" type="button">Anderen PC koppeln</button>${canHostHere() ? '<button class="btn block" id="st-local" type="button">Auf diesem Handy hosten</button>' : ''}`}</div>
+      ${isLocal() ? '<p class="hint" style="text-align:center;margin-top:12px">Server auf dem Handy laufen weiter, wenn du zum PC wechselst.</p>' : ''}
+      <p class="hint" style="text-align:center;margin-top:18px">MC Host · Server auf dem Handy oder am PC<br>Quellcode: github.com/LvisXVI/minecraft-host</p>`;
+    const change = $('#st-change', el); if (change) change.onclick = () => { stack.length = 0; show('pair'); };
+    const toLocal = $('#st-local', el); if (toLocal) toLocal.onclick = useLocal;
+    const toPc = $('#st-pc', el); if (toPc) toPc.onclick = () => { conn = { ...conn, mode: 'pc' }; store.set('mode', 'pc'); state = null; stack.length = 0; if (conn.base && conn.code) { refresh(); show('servers'); } else show('pair'); };
     return (s, error) => {
-      $('#st-state', el).textContent = error ? error : 'Verbunden';
-      if (s?.app) $('#st-version', el).textContent = `Version ${s.app.current}${s.app.available ? ` · Update ${s.app.latest} am PC verfügbar` : ''}`;
+      $('#st-state', el).textContent = error ? error : isLocal() ? `${(n => n === 1 ? '1 Server läuft' : `${n} Server laufen`)(s?.profiles.filter(p => p.running).length || 0)} auf diesem Handy · max. ${s?.max_ram_mb || '?'} MB RAM` : 'Verbunden';
+      if (s?.app) $('#st-version', el).textContent = isLocal() ? `MC Host ${s.app.current} · Java 25 (OpenJDK) eingebaut` : `Version ${s.app.current}${s.app.available ? ` · Update ${s.app.latest} am PC verfügbar` : ''}`;
     };
   },
 };
@@ -308,7 +352,8 @@ screens.settings = {
 (async () => {
   const launch = $('#launch');
   const minimum = new Promise(resolve => setTimeout(resolve, 1100));
-  if (conn.base && conn.code) { startPolling(); await Promise.all([refresh(), minimum]); show('servers'); }
-  else { await minimum; show('pair'); }
+  if (isLocal() && canHostHere()) { startPolling(); await Promise.all([refresh(), minimum]); show('servers'); }
+  else if (conn.base && conn.code) { conn.mode = 'pc'; startPolling(); await Promise.all([refresh(), minimum]); show('servers'); }
+  else { await minimum; show(canHostHere() ? 'welcome' : 'pair'); }
   launch.classList.add('done');
 })();

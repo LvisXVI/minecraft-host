@@ -140,3 +140,11 @@ code, .mono { font-family: "JetBrains Mono", "Cascadia Mono", ui-monospace, mono
 @keyframes toastIn { from { opacity: 0; transform: translateY(16px) scale(.96); } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* mode choice */
+.choice { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; transition: transform .3s var(--spring), border-color .2s; }
+.choice:active { transform: scale(.97); }
+.choice:disabled { opacity: .5; }
+.choice .server-icon { width: 54px; height: 54px; font-size: 26px; }
+.choice small { display: block; margin-top: 2px; color: var(--ink-3); font-size: 13px; line-height: 1.35; }
+.stack { display: grid; gap: 10px; }

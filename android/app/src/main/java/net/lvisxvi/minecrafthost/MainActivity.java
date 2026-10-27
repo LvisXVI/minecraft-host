@@ -13,8 +13,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * Hosts the bundled remote-control UI (assets/www). The UI talks to Minecraft Host over HTTP
- * with the pairing code; this class only stores the connection and opens external links.
+ * Hosts the bundled UI (assets/www). It either controls Minecraft Host on a PC over HTTP with the
+ * pairing code, or runs servers on this phone through {@link LocalHost}.
  */
 public class MainActivity extends Activity {
     private WebView web;
@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(false);
         web.setBackgroundColor(0xFF070B14);
-        web.addJavascriptInterface(new Bridge(getSharedPreferences("connection", Context.MODE_PRIVATE)), "HostApp");
+        web.addJavascriptInterface(new Bridge(getSharedPreferences("connection", Context.MODE_PRIVATE), LocalHost.get(this)), "HostApp");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -72,12 +72,20 @@ public class MainActivity extends Activity {
         });
     }
 
-    /** Connection storage for the UI; private to this app. */
+    /** Connection storage and the on-phone host for the UI; private to this app. */
     static final class Bridge {
         private final SharedPreferences prefs;
+        private final LocalHost local;
 
-        Bridge(SharedPreferences prefs) {
+        Bridge(SharedPreferences prefs, LocalHost local) {
             this.prefs = prefs;
+            this.local = local;
+        }
+
+        /** Same API as Minecraft Host on the PC, answered by the server running on this phone. */
+        @JavascriptInterface
+        public String local(String method, String path, String body) {
+            return local.call(method, path, body);
         }
 
         @JavascriptInterface

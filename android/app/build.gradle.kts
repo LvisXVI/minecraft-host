@@ -12,7 +12,9 @@ android {
     defaultConfig {
         applicationId = "net.lvisxvi.minecrafthost"
         minSdk = 26
-        targetSdk = 35
+        // 28: phone hosting starts the bundled Java runtime from app storage, which Android only
+        // allows for apps targeting API 28 or lower (the same reason Termux targets 28).
+        targetSdk = 28
         versionCode = (System.getenv("ANDROID_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("ANDROID_VERSION_NAME") ?: "1.0.0"
     }
@@ -33,6 +35,16 @@ android {
             isMinifyEnabled = false
             if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    lint {
+        // targetSdk 28 is deliberate (see defaultConfig); the app is distributed outside Google Play.
+        disable += setOf("ExpiredTargetSdkVersion", "OldTargetApi")
+    }
+
+    androidResources {
+        // jre.zip is already compressed
+        noCompress += "zip"
     }
 
     compileOptions {
