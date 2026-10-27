@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="media/scene.webp">
+  <link rel="preload" as="image" href="media/bg/cherry-valley-poster.webp">
   <link rel="stylesheet" href="liquid.css">
   <script type="application/ld+json">
     {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Minecraft Host","applicationCategory":"GameApplication","operatingSystem":"Windows 10, Windows 11","url":"https://lvisxvi.github.io/minecraft-host/","downloadUrl":"https://github.com/LvisXVI/minecraft-host/releases/latest","author":{"@type":"Person","name":"LvisXVI"},"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
   </script>
   <style>
-    body { --scene: url("media/scene.webp"); --accent: #6fe38a; --accent-2: #69b8ff; --accent-ink: #052012; }
+    body { --scene: url("media/bg/cherry-valley-poster.webp"); --scene-filter: saturate(1.12) brightness(.96); --accent: #6fe38a; --accent-2: #69b8ff; --accent-ink: #052012; }
     .block-mark { width: 32px; height: 32px; border-radius: 10px; display: inline-block; background: linear-gradient(180deg, #8ff09f 0 34%, #5cb85c 34% 50%, #8b5a2b 50% 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(255,255,255,.25), 0 6px 18px -6px var(--accent); }
     .intro-drop .block { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(180deg, #8ff09f 0 32%, #5cb85c 32% 46%, #8b5a2b 46% 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,.6); animation: dropIcon 1.1s var(--ease-out) .35s both; }
     .f1 { left: -30px; top: 16%; } .f2 { right: -16px; top: 56%; animation-delay: -3s; }
@@ -42,7 +42,7 @@
 </head>
 <body data-repo="LvisXVI/minecraft-host" data-asset="Portable.*\.zip$">
   <a class="skip" href="#main">Skip to content</a>
-  <div class="lg-scene" aria-hidden="true"></div>
+  <div class="lg-scene" aria-hidden="true"><video class="lg-scene__video" autoplay muted loop playsinline poster="media/bg/cherry-valley-poster.webp"><source src="media/bg/cherry-valley-loop.mp4" type="video/mp4"></video></div>
 
   <div id="lg-intro" aria-hidden="true">
     <div class="intro-core">
@@ -156,7 +156,7 @@
         <p>Switch in the top-right corner of the app. Your choice is saved on this PC and the change cross-fades smoothly.</p>
       </div>
       <div class="designs">
-        <div class="design glass" data-reveal><i style="background-image:url(media/scene.webp)"></i><strong>Cherry Grove</strong><small>Grass green · default</small></div>
+        <div class="design glass" data-reveal><i style="background-image:url(media/bg/cherry-valley-poster.webp)"></i><strong>Cherry Grove</strong><small>Grass green · default</small></div>
         <div class="design glass" data-reveal style="--d:1"><i style="background-image:url(media/scene-aurora.webp)"></i><strong>Aurora</strong><small>Cool teal</small></div>
         <div class="design glass" data-reveal style="--d:2"><i style="background-image:url(media/scene-crystal.webp)"></i><strong>Crystal Valley</strong><small>Amethyst violet</small></div>
         <div class="design glass" data-reveal style="--d:3"><i style="background-image:linear-gradient(160deg,#5a1a12,#1a0609)"></i><strong>Nether</strong><small>Embers, no image</small></div>
@@ -212,6 +212,7 @@ pyinstaller MinecraftHost.spec</pre>
       </nav>
     </div>
   </footer>
+  <script src="music-player.js" defer></script>
   <script src="liquid.js" defer></script>
 </body>
 </html>
