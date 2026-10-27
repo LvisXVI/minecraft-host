@@ -41,7 +41,7 @@ class SharedHost:
     def _exe(self) -> Path:
         path = self.exe_dir / "syncthing.exe"
         if not path.is_file():
-            raise ValueError("syncthing.exe fehlt neben MinecraftHost.exe.")
+            raise ValueError("syncthing.exe ist in diesem Minecraft-Host-Paket nicht enthalten.")
         return path
 
     def ensure(self) -> str:

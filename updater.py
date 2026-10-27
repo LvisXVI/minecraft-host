@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.3"
 REPO = "LvisXVI/minecraft-host"
 RELEASE_API = f"https://api.github.com/repos/{REPO}/releases/latest"
 ASSET_NAME = "MinecraftHost-Portable-Windows.zip"
@@ -48,6 +48,11 @@ def install_dir() -> Path:
     return Path(sys.executable).resolve().parent
 
 
+def is_onefile() -> bool:
+    bundle = getattr(sys, "_MEIPASS", None)
+    return bool(is_frozen() and bundle and Path(bundle).resolve().parent != install_dir())
+
+
 def _get_json(url: str) -> dict:
     req = Request(url, headers={"User-Agent": f"MinecraftHost/{APP_VERSION}", "Accept": "application/vnd.github+json"})
     with urlopen(req, timeout=20) as response:
@@ -68,7 +73,7 @@ def check(force: bool = False) -> dict:
             "available": parse_version(latest) > parse_version(APP_VERSION) and ASSET_NAME in assets and SUMS_NAME in assets,
             "notes": str(release.get("body", ""))[:4000], "page": release.get("html_url", ""),
             "package_url": assets.get(ASSET_NAME, ""), "sums_url": assets.get(SUMS_NAME, ""),
-            "installable": is_frozen(), "checked_at": time.time(),
+            "installable": is_frozen() and not is_onefile(), "checked_at": time.time(),
         }
     except Exception as ex:  # offline or rate-limited: keep the app usable
         result = {**_status, "current": APP_VERSION, "error": f"Update-Prüfung fehlgeschlagen: {ex}", "checked_at": time.time()}
@@ -91,6 +96,7 @@ def public_status() -> dict:
     with _lock:
         status = {k: v for k, v in _status.items() if k not in ("package_url", "sums_url")}
     status["installing"] = _installing
+    status["onefile"] = is_onefile()
     return status
 
 
@@ -193,6 +199,8 @@ def install(data_dir: Path, busy_reason: str = "") -> dict:
     global _installing
     if not is_frozen():
         raise ValueError("Automatische Updates gibt es nur in der EXE-Version. Im Quellcode bitte die neue Version von GitHub laden.")
+    if is_onefile():
+        raise ValueError("Diese einzelne EXE bitte durch eine neue Standalone-EXE ersetzen.")
     if busy_reason:
         raise ValueError(busy_reason)
     status = check(force=True)

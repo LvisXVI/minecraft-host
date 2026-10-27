@@ -22,10 +22,23 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from shared_host import SharedHost
+import java_runtime
 import remote
 import updater
 
 APP_DIR = Path(__file__).resolve().parent
+EXE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else APP_DIR.parent
+
+
+def bundled_tool(name: str) -> Path:
+    """Find a helper beside the app or in PyInstaller's one-file bundle."""
+    for folder in (EXE_DIR, APP_DIR):
+        candidate = folder / name
+        if candidate.is_file():
+            return candidate
+    return EXE_DIR / name
+
+
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "MinecraftHost"
 SERVERS_DIR = DATA_DIR / "servers"
 CONFIG_FILE = DATA_DIR / "config.json"
@@ -44,13 +57,15 @@ TUNNEL_LOGS: deque[str] = deque(maxlen=60)
 GATE: subprocess.Popen | None = None
 GATE_PROFILE_ID = ""
 GATE_CONNECTED = False
+GATE_ERROR = ""
+GATE_STOPPING: set[int] = set()
 GATE_LOGS: deque[str] = deque(maxlen=60)
 METRICS: dict[str, dict] = {}
 TICK_PENDING: dict[str, float] = {}
 STOP_REQUESTED: set[str] = set()
 STOP_RESENT: set[str] = set()
 READ_THREADS: dict[str, threading.Thread] = {}
-SHARED = SharedHost(DATA_DIR, Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else APP_DIR.parent)
+SHARED = SharedHost(DATA_DIR, bundled_tool("syncthing.exe").parent)
 SHARED_INFO_CACHE: dict[str, tuple[float, dict]] = {}
 SHARED_PUBLISHING: set[str] = set()
 SERVER: "LocalHTTPServer | None" = None
@@ -70,12 +85,21 @@ def load_config() -> dict:
 CONFIG = load_config()
 CONFIG.setdefault("profiles", [])
 CONFIG.setdefault("playit_path", "")
+CONFIG.setdefault("playit_custom", False)
 CONFIG.setdefault("remote", {"enabled": False, "port": remote.DEFAULT_PORT, "token": ""})
 REMOTE: "remote.RemoteServer | None" = None
-if not CONFIG["playit_path"]:
-    bundled_agent = Path(sys.executable).resolve().parent / "playit-agent.exe" if getattr(sys, "frozen", False) else APP_DIR.parent / "playit-agent.exe"
-    if bundled_agent.is_file():
-        CONFIG["playit_path"] = str(bundled_agent)
+
+
+def active_playit_path() -> str:
+    selected = str(CONFIG.get("playit_path", ""))
+    if CONFIG.get("playit_custom") and Path(selected).is_file():
+        return selected
+    bundled = bundled_tool("playit-agent.exe")
+    if bundled.is_file():
+        return str(bundled)
+    return selected if Path(selected).is_file() else ""
+
+
 JAVA_CACHE: tuple[float, list[dict]] = (0, [])
 RADMIN_CACHE: tuple[float, dict] = (0, {})
 
@@ -178,6 +202,33 @@ def gate_local_port(p: dict) -> int:
     return int(p["port"]) - 1 if int(p["port"]) > 1024 else int(p["port"]) + 1
 
 
+def fabric_api_present(p: dict) -> bool:
+    mods = server_dir(p) / "mods"
+    return mods.is_dir() and any(file.is_file() and file.name.lower().startswith("fabric-api-")
+                                  and file.suffix.lower() == ".jar" for file in mods.iterdir())
+
+
+def install_fabric_api(p: dict) -> None:
+    """Install the required FabricProxy-Lite dependency for this Minecraft version."""
+    if fabric_api_present(p):
+        return
+    versions = get_json("https://api.modrinth.com/v2/project/fabric-api/version?" + urlencode({
+        "game_versions": json.dumps([p["minecraft"]]), "loaders": json.dumps(["fabric"])}))
+    version = next((v for v in versions if v.get("version_type") == "release" and
+                    any(f.get("filename", "").lower().endswith(".jar") for f in v.get("files", []))), None)
+    if not version:
+        raise ValueError(f"Für Minecraft {p['minecraft']} wurde keine passende Fabric API gefunden.")
+    file = next((f for f in version["files"] if f.get("primary") and f.get("filename", "").lower().endswith(".jar")),
+                next(f for f in version["files"] if f.get("filename", "").lower().endswith(".jar")))
+    if urlparse(file["url"]).hostname != "cdn.modrinth.com" or Path(file["filename"]).name != file["filename"]:
+        raise ValueError("Fabric API liegt nicht auf dem offiziellen Modrinth-CDN.")
+    hashes = file.get("hashes") or {}
+    if not hashes.get("sha512") and not hashes.get("sha1"):
+        raise ValueError("Fabric API hat keine prüfbare Dateisumme.")
+    add_log(p["id"], "[Minecraft Host] Installiere benötigte Fabric API …")
+    download(file["url"], server_dir(p) / "mods" / file["filename"], hashes)
+
+
 def setup_minekube(p: dict) -> None:
     if p.get("minekube_incompatible"):
         raise ValueError("Dieser Modpack-Server konnte über Minekube Gate nicht betreten werden. Nutze eine direkte TCP-Verbindung oder einen rohen TCP-Tunnel.")
@@ -213,6 +264,7 @@ def setup_minekube(p: dict) -> None:
         mod_path.unlink()
     if not mod_path.exists():
         download(file["url"], mod_path, file.get("hashes"))
+    install_fabric_api(p)
     proxy_config = server_dir(p) / "config" / "FabricProxy-Lite.toml"
     proxy_config.parent.mkdir(parents=True, exist_ok=True)
     proxy_config.write_text('hackOnlineMode = false\nhackEarlySend = false\nhackMessageChain = false\n'
@@ -223,6 +275,7 @@ def setup_minekube(p: dict) -> None:
                  minekube_mod_filename=file["filename"],
                  public_address=endpoint + ".play.minekube.net")
         save_config()
+    start_gate(p)
 
 
 def disable_minekube(p: dict) -> None:
@@ -242,31 +295,42 @@ def disable_minekube(p: dict) -> None:
 
 
 def read_gate(process: subprocess.Popen, pid: str) -> None:
-    global GATE_CONNECTED
+    global GATE_CONNECTED, GATE_ERROR
     try:
         for line in process.stdout:
             clean = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", line).strip()
             if not clean:
                 continue
             with LOCK:
+                if process is not GATE:
+                    continue
                 GATE_LOGS.append(clean[:1000])
                 if "established tunnel for session" in clean:
                     GATE_CONNECTED = True
+                    GATE_ERROR = ""
                 elif "session watcher disconnected" in clean:
                     GATE_CONNECTED = False
+                elif "\tERROR\t" in clean or "address already in use" in clean.lower():
+                    GATE_ERROR = "Minekube Gate meldet einen Verbindungsfehler. Prüfe Endpoint und Internetverbindung."
     except (OSError, ValueError):
         pass
     finally:
-        GATE_CONNECTED = False
         code = process.wait()
+        with LOCK:
+            expected = process.pid in GATE_STOPPING
+            GATE_STOPPING.discard(process.pid)
+            if process is GATE:
+                GATE_CONNECTED = False
+            if process is GATE and not expected:
+                GATE_ERROR = f"Minekube Gate wurde beendet (Code {code}). Prüfe Endpoint und Internetverbindung."
         add_log(pid, f"[Minecraft Host] Minekube-Gate beendet (Code {code}).")
 
 
 def start_gate(p: dict) -> None:
-    global GATE, GATE_PROFILE_ID, GATE_CONNECTED
+    global GATE, GATE_PROFILE_ID, GATE_CONNECTED, GATE_ERROR
     if not p.get("minekube_enabled"):
         return
-    exe = Path(sys.executable).resolve().parent / "gate.exe" if getattr(sys, "frozen", False) else APP_DIR.parent / "gate.exe"
+    exe = bundled_tool("gate.exe")
     if not exe.is_file():
         raise ValueError("gate.exe fehlt neben MinecraftHost.exe.")
     if GATE and GATE.poll() is None:
@@ -286,6 +350,7 @@ def start_gate(p: dict) -> None:
     (root / "config.json").write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     GATE_CONNECTED = False
+    GATE_ERROR = ""
     GATE_LOGS.clear()
     GATE = subprocess.Popen([str(exe), "-c", str(root / "config.json")], cwd=root,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
@@ -295,10 +360,12 @@ def start_gate(p: dict) -> None:
 
 
 def stop_gate(pid: str = "") -> None:
-    global GATE_CONNECTED
+    global GATE_CONNECTED, GATE_ERROR
     if GATE and GATE.poll() is None and (not pid or GATE_PROFILE_ID == pid):
+        GATE_STOPPING.add(GATE.pid)
         GATE.terminate()
     GATE_CONNECTED = False
+    GATE_ERROR = ""
 
 
 def get_json(url: str) -> dict | list:
@@ -454,6 +521,8 @@ def java_candidates() -> list[dict]:
     modrinth_java = Path(os.environ.get("APPDATA", "")) / "ModrinthApp" / "meta" / "java_versions"
     if modrinth_java.exists():
         paths.extend(modrinth_java.glob("*/bin/java.exe"))
+    for major in java_runtime.SUPPORTED:
+        paths.append(java_runtime.runtime_path(DATA_DIR / "runtimes", major))
     result = []
     seen = set()
     for p in paths:
@@ -477,7 +546,7 @@ def minimum_java(p: dict) -> int:
         return 25
     if version.startswith("1.21") or version.startswith("1.20.5") or version.startswith("1.20.6"):
         return 21
-    if version.startswith(("1.18", "1.19", "1.20")):
+    if version.startswith(("1.17", "1.18", "1.19", "1.20")):
         return 17
     return 8
 
@@ -495,6 +564,41 @@ def pick_java(p: dict) -> tuple[str, int]:
     target = minimum_java(p)
     best = next((j for j in sorted(candidates, key=lambda x: x["major"]) if j["major"] >= target), candidates[0])
     return best["path"], best["major"]
+
+
+def ensure_java(p: dict) -> tuple[str, int]:
+    """Select the matching Java version, downloading it on first use if needed."""
+    needed = minimum_java(p)
+    target = next((major for major in java_runtime.SUPPORTED if major >= needed), None)
+    requested = p.get("java_path", "").strip()
+    if requested:
+        java, major = pick_java(p)
+        if major < needed:
+            raise ValueError(f"Minecraft {p['minecraft']} benötigt Java {needed} oder neuer. Eingestellt: Java {major}.")
+        return java, major
+    if target is None:
+        raise ValueError(f"Für Minecraft {p['minecraft']} ist Java {needed} nötig; automatischer Download ist noch nicht verfügbar.")
+    available = next((j for j in java_candidates() if j["major"] == target), None)
+    if available:
+        return available["path"], target
+    pid = p["id"]
+    last_bucket = -1
+    def progress(message: str) -> None:
+        nonlocal last_bucket
+        with LOCK:
+            if pid in JOBS:
+                JOBS[pid]["progress"] = message
+        bucket = int(message.split(": ")[1].split(" %")[0]) // 10 if message.startswith("Java wird geladen: ") else -1
+        if bucket < 0 or bucket != last_bucket:
+            add_log(pid, "[Minecraft Host] " + message)
+        last_bucket = bucket
+    try:
+        java = java_runtime.ensure_runtime(DATA_DIR / "runtimes", target, progress)
+    except Exception as ex:
+        raise ValueError(f"Java {target} konnte nicht automatisch eingerichtet werden: {ex}") from ex
+    global JAVA_CACHE
+    JAVA_CACHE = (0, [])
+    return str(java), target
 
 
 def install_loader(p: dict) -> None:
@@ -523,7 +627,7 @@ def install_loader(p: dict) -> None:
         download(server["url"], root / "server.jar", {"sha1": server["sha1"]})
         p["jar"] = "server.jar"
     elif kind in ("neoforge", "forge"):
-        java, major = pick_java(p)
+        java, major = ensure_java(p)
         needed = minimum_java(p)
         if major < needed:
             raise ValueError(f"Für die Loader-Installation ist Java {needed} oder neuer nötig. Gefunden: Java {major}.")
@@ -823,7 +927,7 @@ def _start_server(p: dict) -> None:
             raise ValueError("Minekube-Proxy-Mod fehlt. Bitte Minekube erneut einrichten.")
         if GATE and GATE.poll() is None and GATE_PROFILE_ID != pid:
             raise ValueError("Minekube läuft bereits für einen anderen Server.")
-    java, major = pick_java(p)
+    java, major = ensure_java(p)
     needed = minimum_java(p)
     if major < needed:
         raise ValueError(f"Minecraft {p['minecraft']} benötigt Java {needed} oder neuer. Gefunden: Java {major}.")
@@ -1009,6 +1113,7 @@ def state() -> dict:
             item["logs"] = list(LOGS.get(p["id"], []))[-180:]
             item["job"] = JOBS.get(p["id"])
             item["metrics"] = dict(METRICS.get(p["id"], {}))
+            item["minekube_dependency_ready"] = fabric_api_present(p) if p.get("minekube_enabled") else False
             item["firewall"] = firewall_status(profile_java_path(p)) if p.get("installed") else {}
             if p.get("shared_role"):
                 cached = SHARED_INFO_CACHE.get(p["id"])
@@ -1019,12 +1124,13 @@ def state() -> dict:
             profiles.append(item)
         return {"profiles": profiles, "java": java_candidates(), "local_ip": local_ip(),
                 "radmin": radmin_status(),
-                "playit_path": CONFIG.get("playit_path", ""),
+                "playit_path": active_playit_path(),
                 "tunnel_running": bool(TUNNEL and TUNNEL.poll() is None),
                 "tunnel_claim": TUNNEL_CLAIM if TUNNEL and TUNNEL.poll() is None else "",
                 "gate_running": bool(GATE and GATE.poll() is None),
-                "gate_profile_id": GATE_PROFILE_ID if GATE and GATE.poll() is None else "",
+                "gate_profile_id": GATE_PROFILE_ID,
                 "gate_connected": GATE_CONNECTED if GATE and GATE.poll() is None else False,
+                "gate_error": GATE_ERROR if GATE_PROFILE_ID else "",
                 "app": updater.public_status(),
                 "remote": remote_state(),
                 "tailscale_ip": next((a["address"] for a in remote.addresses() if a["kind"] == "tailscale"), "")}
@@ -1243,7 +1349,20 @@ class Handler(BaseHTTPRequestHandler):
                                  eula=bool(data.get("eula", p["eula"])))
                         save_config()
                 elif action == "start":
-                    start_server(p)
+                    with LOCK:
+                        if JOBS.get(pid, {}).get("status") == "working":
+                            raise ValueError("Eine Einrichtung oder ein Serverstart läuft bereits.")
+                        JOBS[pid] = {"status": "working", "kind": "start", "progress": "Serverstart wird vorbereitet …"}
+                    def start_worker():
+                        try:
+                            start_server(p)
+                            with LOCK:
+                                JOBS.pop(pid, None)
+                        except Exception as ex:
+                            with LOCK:
+                                JOBS[pid].update(status="error", progress=str(ex))
+                            add_log(pid, "[Minecraft Host] Startfehler: " + str(ex))
+                    threading.Thread(target=start_worker, daemon=True).start()
                 elif action == "stop":
                     stop_server(pid)
                 elif action == "command":
@@ -1257,6 +1376,8 @@ class Handler(BaseHTTPRequestHandler):
                     proc.stdin.flush()
                     add_log(pid, "> " + command)
                 elif action == "retry":
+                    if JOBS.get(pid, {}).get("status") == "working":
+                        raise ValueError("Einrichtung läuft bereits.")
                     if p.get("installed"):
                         raise ValueError("Server ist bereits installiert.")
                     if JOBS.get(pid, {}).get("kind") == "import":
@@ -1271,6 +1392,15 @@ class Handler(BaseHTTPRequestHandler):
                     threading.Thread(target=retry, daemon=True).start()
                 elif action == "minekube":
                     setup_minekube(p)
+                elif action == "minekube_connect":
+                    if not p.get("minekube_enabled"):
+                        raise ValueError("Minekube ist für diesen Server nicht eingerichtet.")
+                    if not fabric_api_present(p):
+                        raise ValueError("Fabric API fehlt. Server stoppen und Minekube-Einrichtung vervollständigen.")
+                    if GATE and GATE.poll() is None and GATE_PROFILE_ID == pid:
+                        stop_gate(pid)
+                        GATE.wait(timeout=8)
+                    start_gate(p)
                 elif action == "minekube_off":
                     disable_minekube(p)
                 elif action == "firewall":
@@ -1325,10 +1455,11 @@ class Handler(BaseHTTPRequestHandler):
                     if Path(selected).suffix.lower() != ".exe":
                         raise ValueError("Bitte eine .exe-Datei auswählen.")
                     CONFIG["playit_path"] = selected
+                    CONFIG["playit_custom"] = True
                     save_config()
-                return self.json({"path": CONFIG["playit_path"]})
+                return self.json({"path": active_playit_path()})
             if path == "/api/tunnel/start":
-                exe = Path(CONFIG.get("playit_path", ""))
+                exe = Path(active_playit_path())
                 if not exe.is_file():
                     raise ValueError("Bitte zuerst den playit-Agenten auswählen.")
                 if TUNNEL and TUNNEL.poll() is None:

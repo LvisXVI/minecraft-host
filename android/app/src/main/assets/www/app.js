@@ -234,10 +234,10 @@ screens.server = {
       const [cls, label] = status(p); const m = p.metrics || {};
       $('#sv-status', el).textContent = label;
       const badge = $('#sv-badge', el); badge.className = 'badge ' + cls; badge.textContent = `${p.minecraft || '?'} · ${p.loader || '?'}`;
-      $('#sv-job', el).innerHTML = p.job?.status === 'working' ? `<div class="progress"><i></i></div><p class="hint">${esc(p.job.progress)}</p>` : p.job?.status === 'error' && !p.installed ? `<p class="hint" style="color:var(--bad)">${esc(p.job.progress)}</p><button class="btn block" id="sv-retry" type="button">Erneut versuchen</button>` : '';
-      const retry = $('#sv-retry', el); if (retry) retry.onclick = () => act(retry, () => api(`/api/profiles/${id}/retry`, {}), 'Einrichtung gestartet.');
+      $('#sv-job', el).innerHTML = p.job?.status === 'working' ? `<div class="progress"><i></i></div><p class="hint">${esc(p.job.progress)}</p>` : p.job?.status === 'error' ? `<p class="hint" style="color:var(--bad)">${esc(p.job.progress)}</p><button class="btn block" id="sv-retry" type="button">Erneut versuchen</button>` : '';
+      const retry = $('#sv-retry', el); if (retry) retry.onclick = () => act(retry, () => api(`/api/profiles/${id}/${p.job?.kind === 'start' ? 'start' : 'retry'}`, {}), 'Erneut gestartet.');
       const toggle = $('#sv-toggle', el);
-      toggle.disabled = !p.installed && !p.running;
+      toggle.disabled = p.job?.status === 'working' || !p.installed && !p.running;
       toggle.className = 'btn big-action ' + (p.running ? 'danger' : 'primary');
       toggle.textContent = p.running ? '■  Server stoppen' : p.eula ? '▶  Server starten' : '▶  EULA bestätigen & starten';
       toggle.onclick = () => act(toggle, async () => {

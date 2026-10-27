@@ -26,6 +26,15 @@ class UpdaterTests(unittest.TestCase):
         self.assertGreater(updater.parse_version("v1.10.0"), updater.parse_version("1.9.3"))
         self.assertEqual(updater.parse_version("1.1.0"), (1, 1, 0))
 
+    def test_onefile_does_not_offer_portable_in_place_update(self):
+        with mock.patch.object(updater, "is_frozen", return_value=True), mock.patch.object(updater, "is_onefile", return_value=True):
+            with mock.patch.object(updater, "_get_json", return_value=release("v9.0.0")):
+                status = updater.check(force=True)
+            self.assertTrue(status["available"])
+            self.assertFalse(status["installable"])
+            with self.assertRaisesRegex(ValueError, "Standalone"):
+                updater.install(Path(tempfile.gettempdir()))
+
     def test_newer_release_with_assets_is_available(self):
         with mock.patch.object(updater, "_get_json", return_value=release("v9.0.0")):
             status = updater.check(force=True)

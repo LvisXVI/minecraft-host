@@ -27,11 +27,11 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 | 📦 **Modrinth import** | Paste a `modrinth.com/modpack/...` link and pick the pack version. Server-side files are downloaded over HTTPS and verified with SHA1/SHA512; `overrides` and `server-overrides` are applied. |
 | 🗂️ **Server packs & `.mrpack`** | Import a `.mrpack`, or unpack a ready-made server pack ZIP (server JAR or Forge/NeoForge start arguments). |
 | 🆕 **New servers** | Fabric and Vanilla directly; Forge and NeoForge via the official installer with an exact loader version. |
-| ☕ **Java, automatically** | Installed Java 8/17/21/25 runtimes – including the ones from the Modrinth App – are detected. 1.21.x needs Java 21, 26.x needs Java 25. |
+| ☕ **Java, automatically** | Installed Java 8/17/21/25 runtimes are detected. If the matching version is missing, Minecraft Host downloads a verified Eclipse Temurin JDK on first use into `%LOCALAPPDATA%\MinecraftHost\runtimes`. No administrator rights or system-wide installation are needed. |
 | 📈 **Live data** | Player count, local response time, real RAM usage, uptime and, from 1.20.3, mean tick time with estimated TPS. |
 | 💻 **Console** | Run `list`, `say Hello` or `whitelist add Name` from the app (without `/`). |
 | 🤝 **Host together** | Two PCs, one world: Syncthing transfers the verified world state encrypted, so a friend can take over while your PC is off. |
-| 🔄 **Self-update** | The top bar shows when a new release is out. One click downloads it from GitHub, verifies it against the release's SHA-256 checksums and restarts – servers and worlds are untouched, and a running server blocks the update. |
+| 🔄 **Self-update** | The portable package can download and install newer releases after SHA-256 verification. The single EXE shows new releases but must be replaced manually; servers and worlds remain in local app data. |
 | 📱 **Android app** | Host Vanilla/Fabric servers directly on your phone, or control this PC: the **MC Host** app starts and stops servers, shows the colour-coded console, sends commands, changes settings, creates servers, imports Modrinth packs and switches the tunnel – at home or, with Tailscale, from anywhere. |
 | 🎨 **Five designs** | Cherry Grove, Aurora, Crystal Valley, Nether and Daylight – a Liquid Glass interface with smooth transitions, switchable in the top bar. |
 
@@ -40,8 +40,8 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 ## 🚀 Getting started
 
 1. Download the **portable ZIP** from [Releases](https://github.com/LvisXVI/minecraft-host/releases/latest) and unzip it.
-2. Run **`MinecraftHost.exe`** (keep it next to the `_internal` folder) – no Python needed. The dashboard opens at `http://127.0.0.1:18765` and is only reachable from this PC.
-3. Import a modpack or create a new server, then set RAM, port and Java.
+2. Run **`MinecraftHost.exe`** from the portable package (keep its `_internal` folder) or the single **`MinecraftHost-Standalone.exe`** – no Python needed. The dashboard opens at `http://127.0.0.1:18765` and is only reachable from this PC.
+3. Import a modpack or create a new server, then set RAM and port. Leave the Java field blank for automatic selection and download.
 4. Read the [Minecraft EULA](https://www.minecraft.net/eula), accept it in the app, save and start the server.
 
 From source: install Python 3.11+ and run `Start Minecraft Host.cmd`. The app only uses the Python standard library.
@@ -77,14 +77,14 @@ Other options:
 
 - **Same Wi-Fi:** the LAN address is shown automatically.
 - **playit tunnel:** start the bundled, signed [playit agent](https://github.com/playit-cloud/playit-agent/releases) from the app; after linking it, create a Minecraft Java tunnel to your local port.
-- **Minekube Connect (Fabric, optional):** "set up for free" adds FabricProxy-Lite to the server and starts the bundled [Gate proxy](https://github.com/minekube/gate). Test a full join with your exact modpack first – some modpacks fail through the proxy with a protocol error; use a direct TCP connection then.
+- **Minekube Connect (Fabric, optional):** "set up" installs version-matched FabricProxy-Lite and its required Fabric API, starts the bundled [Gate proxy](https://github.com/minekube/gate), and shows whether Connect is actually linked. Gate creates a local endpoint token on first connection. The address works while Gate and the Minecraft server are running. Test a full join with your exact modpack first – some modpacks fail through the proxy with a protocol error; use a direct TCP connection then.
 - **Port forwarding:** works too, but Minecraft Host never changes router settings itself.
 
 > For a private group, enable `whitelist on` and add friends with `whitelist add PlayerName`.
 
 ## 🤝 Hosting together with a friend
 
-1. Both PCs use the portable package (including `syncthing.exe`) and a matching Java.
+1. Both PCs use either the complete portable package or the standalone EXE. If Java is missing, it downloads automatically on first use while online.
 2. On the main PC, stop the server → **invite friend** → send the code.
 3. Your friend clicks **connect friend's server**, pastes the code and sends back their **device ID**.
 4. Confirm the device ID. The verified world state is transferred (both PCs online at the same time once).
@@ -106,9 +106,12 @@ python app.py                      # dashboard on http://127.0.0.1:18765
 pip install pyinstaller
 python -m unittest discover tests  # updater tests
 pyinstaller MinecraftHost.spec     # dist\MinecraftHost\ (MinecraftHost.exe + _internal)
+$env:MINECRAFT_HOST_TOOLS_DIR = 'C:\path\to\official\helpers'
+pyinstaller MinecraftHost-onefile.spec  # dist\MinecraftHost-Standalone.exe
 ```
 
 For the portable package, place `gate.exe`, `playit-agent.exe` and `syncthing.exe` next to the EXE.
+For the standalone build, those verified helper EXEs are embedded in the single file and unpacked into a temporary directory while the app runs. Java runtimes, server files, worlds and settings stay in `%LOCALAPPDATA%\MinecraftHost`. Replace the standalone EXE manually when updating; the in-app updater only installs portable releases.
 
 ## 📚 Technical notes & third-party software
 
