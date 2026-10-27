@@ -21,7 +21,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 REPO = "LvisXVI/minecraft-host"
 RELEASE_API = f"https://api.github.com/repos/{REPO}/releases/latest"
 ASSET_NAME = "MinecraftHost-Portable-Windows.zip"
