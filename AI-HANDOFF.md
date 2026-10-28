@@ -17,3 +17,10 @@
 - The Desktop standalone EXE and existing shortcut now point to build 1.2.5, SHA-256 `88B0C6CE67C93BD19AAB20B5F2DCE44EF930D2F491EDADB5D47CA59776A4F126`; the previous Desktop EXE was backed up under this chat's `work/` folder.
 - Release `v1.2.5` published from commit `3772bd6` with portable ZIP, standalone EXE and SHA256SUMS. GitHub reports the same SHA-256 digests as the local assets, and `main` was pushed. The Desktop copy is version 1.2.5.
 - Next: sign in to Tailscale on both PCs, share the hosting device, and test one full Minecraft join plus world handoff with the friend.
+
+## 2026-10-28 — Android app 1.2.0 (Claude)
+
+- Only `android/` changed (commit 73ea5cd, tag `android-v1.2.0`, built by the Android GitHub workflow); the Windows 1.2.5 release is untouched.
+- New in phone-hosting mode: Modrinth modpack import (`/api/modrinth/inspect|import` in `LocalHost.java`; Fabric packs only, hosts limited to Modrinth/GitHub/GitLab, sha1-checked, path-checked), world backups (zip, last 8, restore with automatic safety backup), editable server.properties (MOTD, difficulty, game mode, max players, view distance, PvP, whitelist, online mode), player management buttons (op, whitelist, kick, ban) and a copy-address button.
+- Checked: `node --check` on `app.js`, and the UI in an Electron stub of `HostApp` (cards render, save sends props, import form lists versions). The Java code was not compiled locally (no JDK); the CI build is the first compile. Not tested on a real phone.
+- Next: confirm the CI build, install the APK on a phone, import a small Fabric pack end to end. The Android launcher icon is still the old grass block; align it with the new Windows icon if wanted.
