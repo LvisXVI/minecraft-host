@@ -199,17 +199,30 @@ screens.server = {
     el.innerHTML = `<div class="card hero"><div class="row" style="align-items:center"><div><span class="label">Status</span><strong id="sv-status" style="font-size:20px">…</strong></div><span class="badge" id="sv-badge"></span></div>
         <div id="sv-job"></div><button class="btn big-action" id="sv-toggle" type="button" disabled>…</button></div>
       <div class="card"><span class="label">Live</span><div class="metrics" id="sv-metrics"></div></div>
-      <div class="card"><span class="label">Adresse für Freunde</span><div class="address"><code id="sv-address">–</code></div><p class="hint" id="sv-address-hint"></p></div>
+      <div class="card"><span class="label">Adresse für Freunde</span><div class="address"><code id="sv-address">–</code></div><button class="btn block" id="sv-copy" type="button" style="margin-top:10px">Adresse kopieren</button><p class="hint" id="sv-address-hint"></p></div>
       <div class="card"><span class="label">Konsole</span><div class="console" id="sv-console"></div>
         <form class="command" id="sv-command"><input name="command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Befehl, z. B. list"><button class="btn primary" type="submit" aria-label="Senden">↑</button></form>
         <div class="quick">${['list', 'say Hallo!', 'time set day', 'weather clear', 'save-all', 'whitelist list'].map(c => `<button type="button" data-cmd="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+      <form class="card" id="sv-players"><span class="label">Spieler verwalten</span>
+        <div class="field"><input name="player" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="16" placeholder="Spielername"></div>
+        <div class="quick" style="flex-wrap:wrap;overflow:visible">${[['op', 'Zum Operator'], ['deop', 'Operator entfernen'], ['whitelist add', 'Auf die Whitelist'], ['whitelist remove', 'Von der Whitelist'], ['kick', 'Rauswerfen'], ['ban', 'Sperren'], ['pardon', 'Entsperren']].map(([c, l]) => `<button type="button" data-player-cmd="${esc(c)}">${esc(l)}</button>`).join('')}</div>
+        <p class="hint">Der Server muss laufen. Die Namen gelten für Java-Konten.</p></form>
+      ${isLocal() ? '<div class="card" id="sv-backups"><span class="label">Sicherungen</span><p class="muted">Sichert die Welt als ZIP auf dem Handy. Die letzten 8 bleiben erhalten; vor dem Zurückspielen wird die aktuelle Welt automatisch gesichert.</p><button class="btn block" id="sv-backup" type="button">Jetzt sichern</button><div id="sv-backup-list"></div></div>' : ''}
       <form class="card" id="sv-settings"><span class="label">Einstellungen</span>
         <div class="row"><div class="field"><span class="hint">RAM</span><select name="ram_mb">${(isLocal() ? [512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192].filter(n => n <= (state?.max_ram_mb || 2048)) : [2048, 3072, 4096, 5120, 6144, 8192, 10240, 12288, 16384]).map(n => `<option value="${n}">${n >= 1024 ? n / 1024 + ' GB' : n + ' MB'}</option>`).join('')}</select></div>
         <div class="field"><span class="hint">Port</span><input name="port" inputmode="numeric"></div></div>
         <div class="field"><span class="hint">Öffentliche Adresse (Tunnel)</span><input name="public_address" autocapitalize="off" placeholder="z. B. name.joinmc.link"></div>
+        ${isLocal() ? `<div class="field"><span class="hint">Servername in der Liste (MOTD)</span><input name="motd" maxlength="60"></div>
+        <div class="row"><div class="field"><span class="hint">Schwierigkeit</span><select name="difficulty"><option value="peaceful">Friedlich</option><option value="easy">Leicht</option><option value="normal">Normal</option><option value="hard">Schwer</option></select></div>
+        <div class="field"><span class="hint">Spielmodus</span><select name="gamemode"><option value="survival">Überleben</option><option value="creative">Kreativ</option><option value="adventure">Abenteuer</option><option value="spectator">Zuschauer</option></select></div></div>
+        <div class="row"><div class="field"><span class="hint">Max. Spieler</span><input name="max-players" inputmode="numeric"></div>
+        <div class="field"><span class="hint">Sichtweite (3–16)</span><input name="view-distance" inputmode="numeric"></div></div>
+        <label class="check"><input type="checkbox" name="pvp"> PvP erlaubt</label>
+        <label class="check"><input type="checkbox" name="white-list"> Nur Spieler auf der Whitelist</label>
+        <label class="check"><input type="checkbox" name="online-mode"> Nur Original-Konten (empfohlen)</label>` : ''}
         <label class="check"><input type="checkbox" name="eula"> Minecraft-EULA akzeptiert</label>
         <button class="btn block" type="submit">Speichern</button><p class="hint">Änderungen nur bei gestopptem Server.</p></form>
-      ${isLocal() ? '<div class="card"><span class="label">Speicher</span><p class="muted">Löscht den Server mit Welt von diesem Handy.</p><button class="btn danger block" id="sv-delete" type="button">Server löschen</button></div>' : ''}`;
+      ${isLocal() ? '<div class="card"><span class="label">Speicher</span><p class="muted">Löscht den Server mit Welt und Sicherungen von diesem Handy.</p><button class="btn danger block" id="sv-delete" type="button">Server löschen</button></div>' : ''}`;
     const del = $('#sv-delete', el);
     if (del) del.onclick = () => {
       if (del.dataset.confirm !== '1') { del.dataset.confirm = '1'; del.textContent = 'Wirklich löschen? Nochmal tippen'; setTimeout(() => { if (del.isConnected) { del.dataset.confirm = ''; del.textContent = 'Server löschen'; } }, 3500); return; }
@@ -224,7 +237,36 @@ screens.server = {
     el.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => send(b.dataset.cmd));
     $('#sv-settings', el).onsubmit = event => {
       event.preventDefault(); const f = event.target;
-      act(f.querySelector('button'), () => api(`/api/profiles/${id}/save`, { ram_mb: +f.ram_mb.value, port: +f.port.value, public_address: f.public_address.value.trim(), eula: f.eula.checked }), 'Gespeichert.');
+      const body = { ram_mb: +f.ram_mb.value, port: +f.port.value, public_address: f.public_address.value.trim(), eula: f.eula.checked };
+      if (isLocal()) body.props = { motd: f.motd.value.trim(), difficulty: f.difficulty.value, gamemode: f.gamemode.value, 'max-players': f['max-players'].value.trim(), 'view-distance': f['view-distance'].value.trim(), pvp: String(f.pvp.checked), 'white-list': String(f['white-list'].checked), 'online-mode': String(f['online-mode'].checked) };
+      act(f.querySelector('button'), () => api(`/api/profiles/${id}/save`, body), 'Gespeichert.');
+    };
+    $('#sv-copy', el).onclick = async () => {
+      const text = $('#sv-address', el).textContent;
+      try { await navigator.clipboard.writeText(text); toast('Adresse kopiert.'); }
+      catch { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); try { document.execCommand('copy'); toast('Adresse kopiert.'); } catch { toast('Kopieren geht hier nicht.', true); } t.remove(); }
+    };
+    el.querySelectorAll('[data-player-cmd]').forEach(b => b.onclick = () => {
+      const name = $('#sv-players', el).player.value.trim();
+      if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) { toast('Bitte einen gültigen Spielernamen eintragen.', true); return; }
+      send(`${b.dataset.playerCmd} ${name}`);
+    });
+    $('#sv-players', el).onsubmit = event => event.preventDefault();
+    const backupBtn = $('#sv-backup', el);
+    if (backupBtn) backupBtn.onclick = () => act(backupBtn, async () => { await api(`/api/profiles/${id}/backup`, {}); await refresh(); }, 'Sicherung läuft …');
+    let backupKey = '';
+    const renderBackups = (list, running) => {
+      const box = $('#sv-backup-list', el); if (!box) return;
+      const key = JSON.stringify(list) + running; if (key === backupKey) return; backupKey = key;
+      box.innerHTML = list.length ? list.map(b => {
+        const d = new Date(b.time * 1000);
+        return `<div class="row" style="align-items:center;margin-top:10px"><div><strong>${esc(d.toLocaleDateString('de-DE'))} ${esc(d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }))}</strong><small class="hint" style="display:block">${(b.size / 1048576).toFixed(1)} MB</small></div><div style="display:flex;gap:6px"><button class="btn" type="button" data-restore="${esc(b.name)}" ${running ? 'disabled' : ''}>Zurückspielen</button><button class="btn danger" type="button" data-del-backup="${esc(b.name)}" aria-label="Sicherung löschen">✕</button></div></div>`;
+      }).join('') : '<p class="hint" style="margin-top:10px">Noch keine Sicherung.</p>';
+      box.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => {
+        if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Sicher? Nochmal tippen'; setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ''; b.textContent = 'Zurückspielen'; } }, 3500); return; }
+        act(b, async () => { await api(`/api/profiles/${id}/restore`, { name: b.dataset.restore }); await refresh(); }, 'Sicherung wird zurückgespielt …');
+      });
+      box.querySelectorAll('[data-del-backup]').forEach(b => b.onclick = () => act(b, async () => { await api(`/api/profiles/${id}/delete_backup`, { name: b.dataset.delBackup }); await refresh(); }, 'Sicherung gelöscht.'));
     };
     let formFilled = false, lastLogs = -1;
     return (s, error) => {
@@ -261,8 +303,12 @@ screens.server = {
         lastLogs = p.logs.length;
       }
       $('#sv-command', el).command.disabled = !p.running;
+      $('#sv-players', el).querySelectorAll('button').forEach(b => { b.disabled = !p.running; });
+      if (isLocal()) renderBackups(p.backups || [], p.running);
       if (!formFilled) {
-        const f = $('#sv-settings', el); f.ram_mb.value = String(p.ram_mb); f.port.value = p.port; f.public_address.value = p.public_address || ''; f.eula.checked = Boolean(p.eula); formFilled = true;
+        const f = $('#sv-settings', el); f.ram_mb.value = String(p.ram_mb); f.port.value = p.port; f.public_address.value = p.public_address || ''; f.eula.checked = Boolean(p.eula);
+        if (isLocal()) { const q = p.props || {}; f.motd.value = q.motd || ''; f.difficulty.value = q.difficulty || 'normal'; f.gamemode.value = q.gamemode || 'survival'; f['max-players'].value = q['max-players'] || '8'; f['view-distance'].value = q['view-distance'] || '6'; f.pvp.checked = q.pvp !== 'false'; f['white-list'].checked = q['white-list'] === 'true'; f['online-mode'].checked = q['online-mode'] !== 'false'; }
+        formFilled = true;
       }
     };
   },
@@ -276,7 +322,7 @@ screens.create = {
         <div class="row"><div class="field"><span class="label">Version</span><input name="minecraft" value="1.21.1" autocapitalize="off"></div>
         <div class="field"><span class="label">Loader</span><select name="loader"><option value="fabric">Fabric</option>${isLocal() ? '' : '<option value="neoforge">NeoForge</option><option value="forge">Forge</option>'}<option value="vanilla">Vanilla</option></select></div></div>
         <button class="btn primary block" type="submit">Server erstellen</button></form>
-      <form class="card" id="mr-form" ${isLocal() ? 'hidden' : ''}><h2>Modpack von Modrinth</h2><p class="muted">Link einfügen, Version wählen, fertig.</p>
+      <form class="card" id="mr-form"><h2>Modpack von Modrinth</h2><p class="muted">${isLocal() ? 'Link einfügen, Version wählen: Mods und Konfiguration kommen direkt aufs Handy. Nur Fabric-Packs; kleine bis mittlere Packs laufen am besten.' : 'Link einfügen, Version wählen, fertig.'}</p>
         <div class="field"><input name="url" inputmode="url" autocapitalize="off" placeholder="https://modrinth.com/modpack/…"></div>
         <button class="btn block" type="submit">Versionen laden</button><div id="mr-versions"></div></form>`;
     $('#new-form', el).onsubmit = event => {
