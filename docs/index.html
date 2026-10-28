@@ -42,7 +42,7 @@
 </head>
 <body data-repo="LvisXVI/minecraft-host" data-asset="Portable.*\.zip$">
   <a class="skip" href="#main">Skip to content</a>
-  <div class="lg-scene" aria-hidden="true"><video class="lg-scene__video" autoplay muted loop playsinline poster="media/bg/cherry-valley-poster.webp"><source src="media/bg/cherry-valley-anim.webm" type="video/webm"></video></div>
+  <div class="lg-scene living" data-living data-image="media/living/host-bg.jpg" data-mask-a="media/living/host-mask-a.png" data-mask-b="media/living/host-mask-b.png" data-particles="blossom" aria-hidden="true" style="background-image: url(media/living/host-bg.jpg)"></div>
 
   <div id="lg-intro" aria-hidden="true">
     <div class="intro-core">
@@ -213,6 +213,7 @@ pyinstaller MinecraftHost.spec</pre>
       </nav>
     </div>
   </footer>
+  <script src="living-bg.js" defer></script>
   <script src="music-player.js" defer></script>
   <script src="liquid.js" defer></script>
 </body>
