@@ -34,7 +34,7 @@
     .ways .card { min-height: 0; }
     .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
     .steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 16px; padding: 18px 20px; border-radius: 20px; color: var(--ink-2); }
-    .steps li::before { content: counter(s); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: var(--accent-ink); background: linear-gradient(180deg, #a6f5b3, var(--accent)); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
+    .steps li::before { content: counter(s); position: static; inset: auto; z-index: auto; padding: 0; -webkit-mask: none; mask: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: var(--accent-ink); background: linear-gradient(180deg, #a6f5b3, var(--accent)); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
     .steps b { color: var(--ink); }
     @media (max-width: 1080px) { .designs { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ways { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 720px) { .designs { grid-template-columns: 1fr 1fr; } .ways { grid-template-columns: 1fr; } }
