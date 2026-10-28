@@ -231,7 +231,7 @@ h3 { font-size: 22px; letter-spacing: -.02em; line-height: 1.15; }
 .span-2 { grid-column: span 2; } .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
 .card.feature-wide { flex-direction: row; align-items: center; gap: 32px; }
 .card.feature-wide > div { flex: 1; display: grid; gap: 12px; }
-.card.feature-wide img { flex: 1.2; min-width: 0; border-radius: 18px; box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8); }
+.card.feature-wide img { flex: 1.2; min-width: 0; width: auto; height: auto; border-radius: 18px; box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8); }
 
 /* ---------- Showcase tabs ---------- */
 .showcase { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; padding: 14px; border-radius: var(--radius-xl); }
