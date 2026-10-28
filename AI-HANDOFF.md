@@ -24,3 +24,11 @@
 - New in phone-hosting mode: Modrinth modpack import (`/api/modrinth/inspect|import` in `LocalHost.java`; Fabric packs only, hosts limited to Modrinth/GitHub/GitLab, sha1-checked, path-checked), world backups (zip, last 8, restore with automatic safety backup), editable server.properties (MOTD, difficulty, game mode, max players, view distance, PvP, whitelist, online mode), player management buttons (op, whitelist, kick, ban) and a copy-address button.
 - Checked: `node --check` on `app.js`, and the UI in an Electron stub of `HostApp` (cards render, save sends props, import form lists versions). The Java code was not compiled locally (no JDK); the CI build is the first compile. Not tested on a real phone.
 - Next: confirm the CI build, install the APK on a phone, import a small Fabric pack end to end. The Android launcher icon is still the old grass block; align it with the new Windows icon if wanted.
+
+## 2026-10-28 — living backgrounds and built-in music (Claude)
+
+- Backgrounds: `docs/living-bg.js` runs a WebGL shader over the still picture `docs/media/living/<site>-bg.jpg`. `<site>-mask-a.png` (R aurora, G water, B glow) and `<site>-mask-b.png` (R stars, G mist, B waterfalls) decide which regions move. Blossom/spark particles come from a canvas layer. The old looping videos are no longer referenced; the files stay in the repo.
+- Music: `docs/music-player.js` generates an ambient track with Web Audio. It starts on page load and falls back to the first tap or key press if the browser blocks sound. The old Spotify embed showed an empty panel.
+- Checks: served the page locally; WebGL canvas ready, no console errors, music button present. Not yet checked on the live Pages build, on Safari, or on a phone.
+- Uncommitted local edits to `docs/index.html` and `docs/liquid.css` (music controls, layout fixes) were not written by this work and were left out of the commit.
+- Next: confirm the live build and motion/audio in a real browser; check performance on a low-end device.
