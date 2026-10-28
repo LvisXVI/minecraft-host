@@ -194,7 +194,16 @@ function endLaunch() {
   const el = $('#launch'); if (!el || el.classList.contains('done')) return;
   setTimeout(() => { el.classList.add('done'); setTimeout(() => el.remove(), 800); }, Math.max(0, 1100 - (Date.now() - launchStarted)));
 }
-setTimeout(endLaunch, 12000);
+setTimeout(endLaunch, 5000);
+$('#launch')?.addEventListener('click', endLaunch);
+// Escape closes the topmost dialog (every dialog already closes on a click outside); a second Escape ends the start animation
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const layers = document.querySelectorAll('.modal-layer');
+  const top = layers[layers.length - 1];
+  if (top) { top.querySelector('[aria-label="Schließen"]')?.click(); event.stopPropagation(); }
+  else endLaunch();
+});
 function showCreateModal() {
   modalOpen = true;
   const layer = document.createElement('div'); layer.className = 'modal-layer'; layer.id = 'modal-layer';

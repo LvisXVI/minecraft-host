@@ -4,7 +4,7 @@
   color-scheme: dark;
   --ink: #f4f9ff;
   --ink-2: rgba(232, 242, 255, .8);
-  --ink-3: rgba(214, 228, 248, .58);
+  --ink-3: rgba(226, 236, 250, .76);
   --line: rgba(255, 255, 255, .15);
   --line-soft: rgba(255, 255, 255, .08);
   --grass: #6fe38a;
@@ -362,3 +362,15 @@ body[data-design="day"] a, body[data-design="day"] .small-link { color: #1667c2;
 .remote-kind { font-size: 11px; color: var(--ink-3); }
 .remote-tailscale { color: var(--accent); }
 .remote-error { color: #ff9a9a; }
+
+/* review round: calmer, even top row and readable small text */
+#launch { cursor: pointer; }
+.topright { gap: 10px; }
+.topbar .phone-toggle, .topbar .design-toggle, .topbar .version-tag, .topbar .local-tag { min-height: 36px; }
+.version-tag { border-color: transparent; }
+.brand-sub { color: var(--ink-2); }
+.side-heading, .side-label, .eyebrow, .section-label, .metric-label { font-size: 11.5px; }
+.server-heading .lead { color: var(--ink-2); }
+body:has(.modal-layer) { overflow: hidden; }
+.modal { overscroll-behavior: contain; }
+@media (max-width: 1100px) { .local-tag { display: none; } }
