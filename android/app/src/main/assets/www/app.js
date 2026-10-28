@@ -79,6 +79,7 @@ function show(name, params = {}, { replace = false, back = false } = {}) {
   $('#bar-title').textContent = screen.title(params);
   $('#bar-kicker').textContent = screen.kicker || (isLocal() ? 'AUF DIESEM HANDY' : 'MINECRAFT HOST');
   $('#back').hidden = stack.length < 2;
+  $('#link').hidden = name === 'welcome' || name === 'pair';
   $('#tabs').hidden = name === 'pair' || name === 'welcome';
   $('#tabs [data-tab="tunnel"]').lastChild.textContent = isLocal() ? 'Freunde' : 'Tunnel';
   document.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-current', String(tab.dataset.tab === (screen.tab || name))));
@@ -97,6 +98,7 @@ window.hostAppBack = goBack;
 window.hostAppPause = () => { paused = true; };
 window.hostAppResume = () => { paused = false; refresh(); };
 $('#back').onclick = goBack;
+$('#link').onclick = () => { stack.length = 0; show('settings'); };
 document.querySelectorAll('[data-tab]').forEach(tab => tab.onclick = () => { stack.length = 0; show(tab.dataset.tab); });
 
 /* ---------- polling ---------- */
@@ -104,11 +106,11 @@ async function refresh() {
   if (!isLocal() && (!conn.base || !conn.code)) return;
   try {
     state = await api('/api/state');
-    $('#link-dot').className = 'link-dot ok'; $('#link-text').textContent = isLocal() ? 'Handy' : 'PC';
+    $('#link-dot').className = 'link-dot ok'; $('#link-text').textContent = isLocal() ? 'Verbunden · Handy' : 'Verbunden · PC';
     const screen = current();
     if (screen?.update) screen.update(state);
   } catch (err) {
-    $('#link-dot').className = 'link-dot bad'; $('#link-text').textContent = 'Offline';
+    $('#link-dot').className = 'link-dot bad'; $('#link-text').textContent = 'Getrennt';
     const screen = current();
     if (screen?.update) screen.update(state, err.message);
   }
@@ -156,7 +158,9 @@ screens.pair = {
       <div class="card"><ol class="steps"><li>Am PC in Minecraft Host oben auf <strong>📱 Handy</strong> tippen und <strong>Fernsteuerung erlauben</strong> einschalten.</li><li>Für unterwegs: <a href="https://tailscale.com/download" style="color:var(--accent)">Tailscale</a> auf PC und Handy mit demselben Konto anmelden.</li><li>Adresse und Kopplungscode hier eintragen.</li></ol></div>
       <form class="card" id="pair-form"><div class="field"><span class="label">Adresse vom PC</span><input id="pair-base" inputmode="url" autocomplete="off" autocapitalize="off" placeholder="100.101.102.103:18766" value="${esc(conn.base.replace(/^https?:\/\//, ''))}"></div>
       <div class="field"><span class="label">Kopplungscode</span><input id="pair-code" class="mono" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" value="${esc(conn.code)}"></div>
-      <button class="btn primary block" type="submit">Verbinden</button></form>`;
+      <button class="btn primary block" type="submit">Verbinden</button></form>
+      ${canHostHere() ? '<button class="btn block" id="pair-cancel" type="button" style="margin-top:12px">← Zurück zur Auswahl</button>' : ''}`;
+    const cancel = $('#pair-cancel', el); if (cancel) cancel.onclick = () => { stack.length = 0; if (conn.mode === 'pc' && !(conn.base && conn.code)) { conn = { ...conn, mode: '' }; store.set('mode', ''); } show('welcome'); };
     $('#pair-form', el).onsubmit = async event => {
       event.preventDefault();
       const button = event.target.querySelector('button');
@@ -180,7 +184,8 @@ screens.servers = {
     return (s, error) => {
       const list = $('#list', el);
       if (!s) { if (error) list.innerHTML = `<div class="card"><h2>Keine Verbindung</h2><p class="muted">${esc(error)}</p></div>`; return; }
-      if (!s.profiles.length) { list.innerHTML = `<div class="empty">${isLocal() ? 'Noch kein Server auf diesem Handy.' : 'Noch keine Server.'}<br>Tippe unten auf <strong>＋ Neu</strong>.</div>`; return; }
+      if (!s.profiles.length) { list.innerHTML = `<div class="empty">${isLocal() ? 'Noch kein Server auf diesem Handy.' : 'Noch keine Server.'}<br>Tippe unten auf <strong>＋ Neu</strong>.</div><button class="card add-card" type="button" id="empty-add">＋ Neuen Server erstellen</button>`;
+        const add = $('#empty-add', el); if (add) add.onclick = () => { stack.length = 0; show('create'); }; return; }
       const key = JSON.stringify(s.profiles.map(p => [p.id, p.name, p.running, p.job?.status, p.metrics?.online, p.installed]));
       if (list.dataset.key === key) return;
       list.dataset.key = key;
