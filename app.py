@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import select
 import shutil
 import socket
 import subprocess
@@ -19,12 +20,14 @@ import zipfile
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
-from urllib.parse import quote, unquote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from shared_host import SharedHost
 import java_runtime
+from private_tunnel import PrivateTunnel
 import remote
 import updater
+from browser_lifecycle import BrowserSessions
 
 APP_DIR = Path(__file__).resolve().parent
 EXE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else APP_DIR.parent
@@ -47,6 +50,7 @@ MAX_UNPACKED = 12 * 1024**3
 MAX_FILE = 2 * 1024**3
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINECRAFT_HOST_PORT", "18765"))
+SERVER_STOP_TIMEOUT = 120  # Large modded worlds may need time to save on shutdown.
 LOCK = threading.RLock()
 PROCESSES: dict[str, subprocess.Popen] = {}
 LOGS: dict[str, deque] = {}
@@ -69,6 +73,7 @@ SHARED = SharedHost(DATA_DIR, bundled_tool("syncthing.exe").parent)
 SHARED_INFO_CACHE: dict[str, tuple[float, dict]] = {}
 SHARED_PUBLISHING: set[str] = set()
 SERVER: "LocalHTTPServer | None" = None
+UI_SESSIONS = BrowserSessions(lambda: SERVER and SERVER.shutdown())
 WORLD_LOCK = threading.RLock()
 
 
@@ -87,7 +92,12 @@ CONFIG.setdefault("profiles", [])
 CONFIG.setdefault("playit_path", "")
 CONFIG.setdefault("playit_custom", False)
 CONFIG.setdefault("remote", {"enabled": False, "port": remote.DEFAULT_PORT, "token": ""})
+CONFIG.setdefault("private_tunnels", {})
+if not isinstance(CONFIG["private_tunnels"], dict):
+    CONFIG["private_tunnels"] = {}
 REMOTE: "remote.RemoteServer | None" = None
+PRIVATE_TUNNEL = PrivateTunnel()
+PRIVATE_TUNNEL_LOCK = threading.RLock()
 
 
 def active_playit_path() -> str:
@@ -1104,6 +1114,7 @@ def profile_java_path(p: dict) -> str:
 
 
 def state() -> dict:
+    private_status = PRIVATE_TUNNEL.status()
     with LOCK:
         profiles = []
         for p in CONFIG["profiles"]:
@@ -1115,6 +1126,7 @@ def state() -> dict:
             item["metrics"] = dict(METRICS.get(p["id"], {}))
             item["minekube_dependency_ready"] = fabric_api_present(p) if p.get("minekube_enabled") else False
             item["firewall"] = firewall_status(profile_java_path(p)) if p.get("installed") else {}
+            item["private_tunnel"] = PRIVATE_TUNNEL.for_profile(CONFIG["private_tunnels"].get(p["id"]), p, private_status)
             if p.get("shared_role"):
                 cached = SHARED_INFO_CACHE.get(p["id"])
                 if not cached or time.monotonic() - cached[0] > 5:
@@ -1133,6 +1145,7 @@ def state() -> dict:
                 "gate_error": GATE_ERROR if GATE_PROFILE_ID else "",
                 "app": updater.public_status(),
                 "remote": remote_state(),
+                "private_tunnel": {key: value for key, value in private_status.items() if key != "ports"},
                 "tailscale_ip": next((a["address"] for a in remote.addresses() if a["kind"] == "tailscale"), "")}
 
 
@@ -1170,6 +1183,33 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(403)
             return
         path = urlparse(self.path).path
+        if path == "/api/ui/watch":
+            try:
+                session_id = parse_qs(urlparse(self.path).query).get("id", [""])[0]
+                version = UI_SESSIONS.watch_open(session_id)
+                if version is None:
+                    return self.send_error(410)
+            except ValueError:
+                return self.send_error(400)
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Connection", "keep-alive")
+                self.end_headers()
+                self.wfile.write(b": connected\n\n")
+                self.wfile.flush()
+                while True:
+                    readable, _, _ = select.select([self.connection], [], [], 2.0)
+                    if readable and not self.connection.recv(1, socket.MSG_PEEK):
+                        break
+                    self.wfile.write(b": heartbeat\n\n")
+                    self.wfile.flush()
+            except (OSError, ValueError):
+                pass
+            finally:
+                UI_SESSIONS.watch_closed(session_id, version)
+            return
         if path == "/api/state":
             return self.json(state())
         if path == "/":
@@ -1193,9 +1233,17 @@ class Handler(BaseHTTPRequestHandler):
             return self.json({"error": "Anfrage von fremder Website blockiert."}, 403)
         path = urlparse(self.path).path
         try:
+            if path == "/api/ui/open":
+                return self.json({"ok": UI_SESSIONS.open(self.body().get("id", ""))})
+            if path == "/api/ui/close":
+                UI_SESSIONS.close(self.body().get("id", ""))
+                return self.json({"ok": True})
             if path == "/api/update/check":
                 updater.check(force=True)
                 return self.json(updater.public_status())
+            if path == "/api/private-tunnel/check":
+                status = PRIVATE_TUNNEL.status(force=True)
+                return self.json({key: value for key, value in status.items() if key != "ports"})
             if path == "/api/update/install":
                 with LOCK:
                     running = [p["name"] for p in CONFIG["profiles"] if (proc := PROCESSES.get(p["id"])) and proc.poll() is None]
@@ -1344,10 +1392,12 @@ class Handler(BaseHTTPRequestHandler):
                     public_address = str(data.get("public_address", "")).strip()
                     if len(public_address) > 255 or any(c.isspace() for c in public_address):
                         raise ValueError("Öffentliche Adresse ist ungültig.")
-                    with LOCK:
-                        p.update(ram_mb=ram, port=port, java_path=java_path, public_address=public_address,
-                                 eula=bool(data.get("eula", p["eula"])))
-                        save_config()
+                    with PRIVATE_TUNNEL_LOCK:
+                        PRIVATE_TUNNEL.retarget(p, CONFIG["private_tunnels"], port)
+                        with LOCK:
+                            p.update(ram_mb=ram, port=port, java_path=java_path, public_address=public_address,
+                                     eula=bool(data.get("eula", p["eula"])))
+                            save_config()
                 elif action == "start":
                     with LOCK:
                         if JOBS.get(pid, {}).get("status") == "working":
@@ -1391,7 +1441,21 @@ class Handler(BaseHTTPRequestHandler):
                             JOBS[pid].update(status="error", progress=str(ex))
                     threading.Thread(target=retry, daemon=True).start()
                 elif action == "minekube":
+                    if pid in CONFIG["private_tunnels"]:
+                        raise ValueError("Den privaten Tailscale-Tunnel zuerst ausschalten, bevor Minekube Gate eingerichtet wird.")
                     setup_minekube(p)
+                elif action == "private_tunnel_start":
+                    with PRIVATE_TUNNEL_LOCK:
+                        result = PRIVATE_TUNNEL.create(p, CONFIG["private_tunnels"])
+                        with LOCK:
+                            save_config()
+                    return self.json(result)
+                elif action == "private_tunnel_stop":
+                    with PRIVATE_TUNNEL_LOCK:
+                        PRIVATE_TUNNEL.remove(p, CONFIG["private_tunnels"])
+                        with LOCK:
+                            save_config()
+                    return self.json({"ok": True})
                 elif action == "minekube_connect":
                     if not p.get("minekube_enabled"):
                         raise ValueError("Minekube ist für diesen Server nicht eingerichtet.")
@@ -1522,6 +1586,7 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        UI_SESSIONS.dispose()
         REMOTE.stop()
         for pid, proc in list(PROCESSES.items()):
             if proc.poll() is None:
@@ -1529,7 +1594,7 @@ def main() -> None:
                     STOP_REQUESTED.add(pid)
                     proc.stdin.write("stop\n")
                     proc.stdin.flush()
-                    proc.wait(timeout=15)
+                    proc.wait(timeout=SERVER_STOP_TIMEOUT)
                 except Exception:
                     proc.terminate()
         for reader in list(READ_THREADS.values()):

@@ -46,6 +46,8 @@ Minecraft Host is a local server manager for **Minecraft Java Edition on Windows
 
 From source: install Python 3.11+ and run `Start Minecraft Host.cmd`. The app only uses the Python standard library.
 
+Closing the last Minecraft Host browser tab closes the app and gracefully stops its running Minecraft servers and helpers. Reloading the dashboard or leaving another Host tab open keeps it running. A `--no-browser` start stays available until a dashboard has been opened and then closed.
+
 ## 🔄 Updates
 
 From 1.1.0 on, Minecraft Host checks GitHub for new releases at start and every few hours. Click **Update** in the top bar (or the version number to check now), read the release notes and choose **Update now**. The app downloads the portable ZIP, verifies it against `SHA256SUMS.txt`, closes itself, swaps its files and starts again; the browser tab reloads on its own. Stop running servers first – the update refuses to start while one is running. Coming from 1.0.x, download 1.1.0 once by hand.
@@ -71,7 +73,7 @@ The remote listener (port 18766) is off by default, needs the 120-bit pairing co
 
 **Recommended: [Radmin VPN](https://www.radmin-vpn.com/) (free, no port forwarding).** Everyone joins the same private Radmin network. Minecraft Host shows the hosting PC's Radmin address with the port and checks whether Windows Firewall lets Java through on the (public) Radmin network.
 
-**Also free: [Tailscale](https://tailscale.com/download).** Share the hosting PC with friends from the Tailscale admin console (or invite them to your tailnet); they join with the `100.x` address and port shown in the server view. Encrypted, no port forwarding, and the same connection serves the Android app. (Tailscale Funnel only forwards HTTPS, so it cannot expose Minecraft publicly.)
+**Also free: [Tailscale](https://tailscale.com/download).** Install and sign in on the hosting PC, then click **Create private tunnel** in Minecraft Host. The app configures a persistent Tailscale Serve TCP forward for that server and shows the address to copy. Friends install Tailscale too and need access to the hosting PC (share it from the Tailscale admin console or invite them to your tailnet). They join with the displayed `100.x:port` address. This needs no router changes or VPS; it is private to the authorized devices and works only while the hosting PC and Minecraft server are running. The app never opens its local dashboard through this tunnel. When a profile port changes, Minecraft Host updates its own forward while keeping the address port stable. Removing this forward does not block direct VPN or LAN access to a running Minecraft server; use the Minecraft whitelist to control players. Tailscale Funnel only forwards HTTPS, so it cannot expose Minecraft publicly. A shared world still syncs separately through Syncthing before the other PC hosts it.
 
 Other options:
 
