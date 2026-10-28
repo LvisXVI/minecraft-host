@@ -104,11 +104,11 @@ async function refresh() {
   if (!isLocal() && (!conn.base || !conn.code)) return;
   try {
     state = await api('/api/state');
-    $('#link-dot').className = 'link-dot ok';
+    $('#link-dot').className = 'link-dot ok'; $('#link-text').textContent = isLocal() ? 'Handy' : 'PC';
     const screen = current();
     if (screen?.update) screen.update(state);
   } catch (err) {
-    $('#link-dot').className = 'link-dot bad';
+    $('#link-dot').className = 'link-dot bad'; $('#link-text').textContent = 'Offline';
     const screen = current();
     if (screen?.update) screen.update(state, err.message);
   }
@@ -384,9 +384,9 @@ screens.settings = {
       <div class="stack">${isLocal() ? '<button class="btn block" id="st-pc" type="button">Zum PC wechseln</button>' : `<button class="btn block" id="st-change" type="button">Anderen PC koppeln</button>${canHostHere() ? '<button class="btn block" id="st-local" type="button">Auf diesem Handy hosten</button>' : ''}`}</div>
       ${isLocal() ? '<p class="hint" style="text-align:center;margin-top:12px">Server auf dem Handy laufen weiter, wenn du zum PC wechselst.</p>' : ''}
       <p class="hint" style="text-align:center;margin-top:18px">MC Host · Server auf dem Handy oder am PC<br>Quellcode: github.com/LvisXVI/minecraft-host</p>`;
-    const change = $('#st-change', el); if (change) change.onclick = () => { stack.length = 0; show('pair'); };
+    const change = $('#st-change', el); if (change) change.onclick = () => show('pair');
     const toLocal = $('#st-local', el); if (toLocal) toLocal.onclick = useLocal;
-    const toPc = $('#st-pc', el); if (toPc) toPc.onclick = () => { conn = { ...conn, mode: 'pc' }; store.set('mode', 'pc'); state = null; stack.length = 0; if (conn.base && conn.code) { refresh(); show('servers'); } else show('pair'); };
+    const toPc = $('#st-pc', el); if (toPc) toPc.onclick = () => { if (conn.base && conn.code) { conn = { ...conn, mode: 'pc' }; store.set('mode', 'pc'); state = null; stack.length = 0; refresh(); show('servers'); } else show('pair'); };
     return (s, error) => {
       $('#st-state', el).textContent = error ? error : isLocal() ? `${(n => n === 1 ? '1 Server läuft' : `${n} Server laufen`)(s?.profiles.filter(p => p.running).length || 0)} auf diesem Handy · max. ${s?.max_ram_mb || '?'} MB RAM` : 'Verbunden';
       if (s?.app) $('#st-version', el).textContent = isLocal() ? `MC Host ${s.app.current} · Java 25 (OpenJDK) eingebaut` : `Version ${s.app.current}${s.app.available ? ` · Update ${s.app.latest} am PC verfügbar` : ''}`;

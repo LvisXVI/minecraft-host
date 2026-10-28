@@ -148,3 +148,12 @@ code, .mono { font-family: "JetBrains Mono", "Cascadia Mono", ui-monospace, mono
 .choice .server-icon { width: 54px; height: 54px; font-size: 26px; }
 .choice small { display: block; margin-top: 2px; color: var(--ink-3); font-size: 13px; line-height: 1.35; }
 .stack { display: grid; gap: 10px; }
+
+/* top bar: clearer title block, labelled connection state */
+.bar-title small { color: var(--accent); opacity: .85; font-weight: 700; }
+.bar-title strong { font-size: 20px; letter-spacing: -.01em; }
+.bar-back { width: 42px; height: 42px; transition: transform .3s var(--spring), background .2s; }
+.bar-back:active { transform: scale(.9); background: rgba(255, 255, 255, .14); }
+.link { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--glass); }
+.link b { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.link .link-dot { box-shadow: none; }
